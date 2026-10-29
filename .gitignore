@@ -1,0 +1,27 @@
+# Dependencias y build
+node_modules/
+dist/
+.vite/
+
+# Capturas generadas por npm run check
+screenshots/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Variables de entorno
+.env*
+!.env.example
+
+# Sistema operativo / OneDrive
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+
+# Configuración local de Claude Code
+.claude/settings.local.json
