@@ -74,4 +74,5 @@ scripts/check.mjs      verificación headless
 - Idioma: la comunicación con el usuario es en español. Comentarios y documentación en español; nombres de variables, funciones y archivos en inglés.
 - Unidades del mundo 3D en metros, para usar las dimensiones reales del rover (aprox. 3 m de largo, 2.7 m de ancho, 2.2 m de alto, ~1025 kg) y la gravedad de Marte (3.721 m/s²).
 - Mantén cada parte del rover (ruedas, suspensión, mástil, brazo) como un componente separado y reutilizable.
+- Commits: no agregues líneas de autoría ni coautoría (`Co-Authored-By`, "Generated with Claude Code", etc.) a los mensajes de commit ni a las descripciones de PR. Mensajes en español, con prefijo tipo `feat:`, `fix:`, `docs:`, `chore:`.
 - Entorno de desarrollo: Windows 11; el repositorio vive dentro de OneDrive, así que evita depender de rutas absolutas y añade `node_modules/` y `dist/` al `.gitignore`.
