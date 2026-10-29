@@ -82,9 +82,32 @@ class TrackStrip {
     this.count = 0;
     this.distance = 0;
     this.last = null;
+    this.lastTravel = null;
   }
 
-  add(center, side) {
+  // Sigue un punto de contacto y añade un tramo cada SEGMENT_LENGTH que recorre.
+  // Cada tira mide su propio desplazamiento: así también hay huella al girar en el
+  // sitio, donde el centro del rover no se mueve pero cada lado describe un arco.
+  follow(point, forward) {
+    if (this.last && this.last.distanceToSquared(point) < SEGMENT_LENGTH * SEGMENT_LENGTH) return;
+    // Los bordes se orientan según hacia dónde se movió de verdad; si no, en
+    // reversa los triángulos quedan boca abajo y no se dibujan
+    const travel = this.last ? point.clone().sub(this.last).setY(0).normalize() : forward;
+    const edge = new THREE.Vector3(travel.z, 0, -travel.x);
+    // En un cambio brusco de dirección (más de ~60°, p. ej. al pasar a reversa o a
+    // girar en el sitio) se reinicia la tira en el último punto: primero un par de
+    // vértices colapsado en el centro y luego el mismo punto con la nueva orientación.
+    // Ambas uniones quedan sin área, así la tira no se retuerce ni deja huecos.
+    if (this.lastTravel && travel.dot(this.lastTravel) < 0.5) {
+      this.add(this.last, edge, 0);
+      this.add(this.last, edge);
+    }
+    this.add(point, edge);
+    this.lastTravel = travel;
+  }
+
+  // edge: perpendicular a la dirección de avance; define qué borde es cada vértice
+  add(center, edge, width = this.width) {
     if (this.last) this.distance += this.last.distanceTo(center);
     if (this.count >= MAX_SEGMENTS) {
       // Búfer lleno: descarta la mitad más antigua
@@ -95,8 +118,8 @@ class TrackStrip {
     }
     const i = this.count;
     for (const [k, s] of [[0, -1], [1, 1]]) {
-      const x = center.x + side.x * s * this.width * 0.5;
-      const z = center.z + side.z * s * this.width * 0.5;
+      const x = center.x + edge.x * s * width * 0.5;
+      const z = center.z + edge.z * s * width * 0.5;
       this.positions.set([x, getSurfaceHeight(x, z) + LIFT, z], (i * 2 + k) * 3);
       this.uvs.set([k, this.distance / 0.6], (i * 2 + k) * 2);
     }
@@ -126,7 +149,6 @@ export class Tracks {
     this.group = new THREE.Group();
     this.group.name = 'tracks';
     this.strips.forEach((s) => this.group.add(s.mesh));
-    this.lastSample = null;
     this.halfTrack = 1.15;
   }
 
@@ -138,13 +160,12 @@ export class Tracks {
 
   update(controller) {
     const pos = controller.position;
-    if (this.lastSample && this.lastSample.distanceToSquared(pos) < SEGMENT_LENGTH * SEGMENT_LENGTH) return;
     const f = controller.forward;
+    // Una tira por línea de ruedas, a cada lado del rover
     const side = new THREE.Vector3(f.z, 0, -f.x);
     this.strips.forEach((strip, i) => {
       const s = i === 0 ? -1 : 1;
-      strip.add(pos.clone().addScaledVector(side, s * this.halfTrack), side);
+      strip.follow(pos.clone().addScaledVector(side, s * this.halfTrack), f);
     });
-    this.lastSample = pos.clone();
   }
 }

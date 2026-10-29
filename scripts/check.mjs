@@ -66,18 +66,72 @@ try {
   await page.keyboard.up('KeyW');
   logs.push(`[check] rover tras teclas reales: ${await roverState()}`);
   // Con tan pocos FPS el teclado apenas lo mueve: simula un recorrido a paso fijo
-  await page.evaluate(() => {
+  const wheelReport = await page.evaluate(() => {
+    const rig = window.__rover.wheelRig;
+    const byKey = Object.fromEntries(rig.wheels.map((w) => [w.key, w]));
+    const deg = (rad) => `${((rad * 180) / Math.PI).toFixed(0)}°`;
+    const steering = () => ['LF', 'LM', 'LB', 'RF'].map((k) => `${k}=${deg(byKey[k].steer.rotation.y)}`).join(' ');
+    const lines = [];
+
     window.__drive(6, ['KeyW']);
+    // Giro de la rueda en 0.1 s a velocidad máxima: debería ser ≈ v·t / radio
+    const before = byKey.LM.spin.rotation.x;
+    window.__drive(0.1, ['KeyW']);
+    const rolled = (byKey.LM.spin.rotation.x - before + Math.PI * 2) % (Math.PI * 2);
+    const expected = (window.__rover.speed * 0.1) / rig.radius;
+    lines.push(`ruedas en recta: giro ${rolled.toFixed(2)} rad en 0.1 s (esperado ≈ ${expected.toFixed(2)}), dirección ${steering()}`);
+
     window.__drive(3, ['KeyW', 'KeyA']);
+    lines.push(`ruedas girando con W+A: dirección ${steering()}`);
     window.__drive(3, ['KeyW']);
     window.__drive(2, []); // frena
+    window.__drive(4, ['KeyS']); // reversa: también debe dejar huella
+    window.__drive(1.5, []);
+
+    // Huellas: ningún triángulo con área debe quedar boca abajo (no se dibujaría)
+    const tracks = window.__rover.rover.parent.getObjectByName('tracks');
+    const trackStats = () => {
+      let faces = 0;
+      let upsideDown = 0;
+      for (const strip of tracks.children) {
+        const p = strip.geometry.attributes.position.array;
+        const idx = strip.geometry.index.array;
+        for (let t = 0; t < strip.geometry.drawRange.count; t += 3) {
+          const [a, b, c] = [idx[t] * 3, idx[t + 1] * 3, idx[t + 2] * 3];
+          const ux = p[b] - p[a], uz = p[b + 2] - p[a + 2];
+          const vx = p[c] - p[a], vz = p[c + 2] - p[a + 2];
+          const ny = uz * vx - ux * vz; // componente Y de u × v
+          if (Math.abs(ny) < 1e-6) continue; // tramo de unión sin área
+          faces++;
+          if (ny < 0) upsideDown++;
+        }
+      }
+      return { faces, upsideDown };
+    };
+    const afterReverse = trackStats();
+    lines.push(`huellas tras reversa: ${afterReverse.faces} triángulos, ${afterReverse.upsideDown} boca abajo`);
+
+    window.__drive(1.5, ['KeyA']);
+    lines.push(`ruedas girando en el sitio: dirección ${steering()}`);
+    window.__drive(3, ['KeyA']); // completa más giro sobre su eje
+    const afterSpin = trackStats();
+    lines.push(
+      `huellas al girar en el sitio: +${afterSpin.faces - afterReverse.faces} triángulos, ${afterSpin.upsideDown} boca abajo`,
+    );
+    window.__drive(1.5, ['KeyW', 'KeyA']);
+    return lines;
   });
+  wheelReport.forEach((line) => logs.push(`[check] ${line}`));
   logs.push(`[check] rover tras recorrido simulado: ${await roverState()}`);
-  // Deja correr unos frames más (frenado, polvo, bloom) antes de capturar
+  // Mantiene W+A durante la captura para que se vean las ruedas orientadas
+  await page.keyboard.down('KeyW');
+  await page.keyboard.down('KeyA');
   await page.waitForTimeout(2500);
 
   await mkdir(fileURLToPath(new URL('../screenshots', import.meta.url)), { recursive: true });
   await page.screenshot({ path: screenshotPath });
+  await page.keyboard.up('KeyA');
+  await page.keyboard.up('KeyW');
   console.log(`Captura: ${screenshotPath}`);
 } catch (err) {
   errors.push(`[check] ${err.message}`);
