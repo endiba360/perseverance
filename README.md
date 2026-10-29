@@ -2,20 +2,33 @@
 
 # 🔴 Perseverance · Jezero
 
-**Un atardecer en Marte, renderizado en tiempo real en tu navegador.**
+**Conduce a Perseverance por las dunas de Marte, en tiempo real y en tu navegador.**
 
-Simulación 3D del rover Perseverance de la NASA en el cráter Jezero, construida con Three.js.
+Simulación 3D del rover Perseverance de la NASA en el cráter Jezero, construida con Three.js y el modelo 3D oficial de la NASA.
 
 ![Three.js](https://img.shields.io/badge/Three.js-r186-000000?logo=three.js&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
 ![Node](https://img.shields.io/badge/Node-26-5FA04E?logo=node.js&logoColor=white)
 ![License](https://img.shields.io/badge/licencia-MIT-c1440e)
+[![Modelo 3D](https://img.shields.io/badge/modelo%203D-NASA%2FJPL--Caltech-0b3d91)](https://github.com/nasa/NASA-3D-Resources)
 
-![Atardecer en el cráter Jezero: dunas, rocas, sol bajo y las lunas Fobos y Deimos](docs/preview.png)
+![Perseverance subiendo una duna al atardecer, dejando huellas en la arena](docs/rover.png)
 
 </div>
 
-## ✨ Qué hay en la escena
+## 🚙 El rover
+
+| | |
+|---|---|
+| 🛰️ **Modelo oficial** | El GLB de [NASA-3D-Resources](https://github.com/nasa/NASA-3D-Resources) a tamaño real: 2.70 m de ancho, 3.11 m de largo y 2.23 m de alto, con el mástil desplegado y el brazo guardado, como cuando conduce. |
+| 🎮 **Conducción** | Avanza, retrocede y gira sobre su eje. Se apoya en sus 6 ruedas y se inclina siguiendo las dunas. |
+| 👣 **Huellas** | Dos bandas sobre la arena con el relieve en chevrón de los grousers, marcado por la luz rasante del sol. |
+| 🎥 **Cámara de seguimiento** | Se coloca detrás del rover al conducir y puedes girarla alrededor con el mouse. |
+| 📷 **Cámaras a bordo** | Al cargar, la consola lista las 8 cámaras del modelo: Mastcam-Z, SuperCam, Navcams, Hazcams, WATSON y las de descenso. |
+
+## ✨ El paisaje
+
+![Atardecer en el cráter Jezero: dunas, rocas, sol bajo y las lunas Fobos y Deimos](docs/preview.png)
 
 | | |
 |---|---|
@@ -26,7 +39,7 @@ Simulación 3D del rover Perseverance de la NASA en el cráter Jezero, construid
 | 🌑 **Fobos y Deimos** | Las dos lunas de Marte, irregulares y con cráteres, flotando en el cielo polvoriento. |
 | 🌫️ **Atmósfera** | Partículas de polvo arrastradas por el viento, niebla de distancia y posprocesado cinematográfico (bloom, viñeta y grano de película). |
 
-Todo es **procedural**: no se descargan texturas ni modelos, solo código.
+El paisaje es **procedural**: no usa texturas ni modelos descargados, solo código. El único recurso externo es el modelo del rover.
 
 ## 🚀 Empezar
 
@@ -39,11 +52,18 @@ npm install
 npm run dev
 ```
 
-Abre http://localhost:5173 y explora con el mouse:
+Abre http://localhost:5173, haz clic en la escena y conduce:
 
-- **Arrastrar**: girar la cámara
-- **Rueda**: acercar / alejar
-- **Clic derecho + arrastrar**: desplazar
+| Tecla | Acción |
+|---|---|
+| `W` / `↑` | Avanzar |
+| `S` / `↓` | Retroceder |
+| `A` / `←` | Girar a la izquierda |
+| `D` / `→` | Girar a la derecha |
+| Arrastrar con el mouse | Girar la cámara alrededor del rover |
+| Rueda del mouse | Acercar / alejar |
+
+> El rover real avanza a unos 4 cm/s; aquí va a 2.5 m/s para que sea jugable.
 
 ## 🧪 Verificación visual
 
@@ -51,15 +71,20 @@ Abre http://localhost:5173 y explora con el mouse:
 npm run check
 ```
 
-Abre la escena en tu Chrome instalado en modo invisible (con [Playwright](https://playwright.dev/) y sin descargar navegadores), guarda una captura en `screenshots/check.png` y lista los errores de consola. Termina con código 1 si encuentra alguno.
+Abre la escena en tu Chrome instalado en modo invisible (con [Playwright](https://playwright.dev/) y sin descargar navegadores), simula un recorrido del rover, guarda una captura en `screenshots/check.png` y lista los mensajes y errores de consola. Termina con código 1 si encuentra algún error.
 
 ## 🗂️ Estructura
 
 ```
 src/
 ├── main.js            renderer, cámara, controles y bucle de animación
+├── rover/
+│   ├── rover.js       carga del modelo, pose de conducción y lista de cámaras
+│   ├── controller.js  conducción e inclinación sobre el terreno
+│   ├── tracks.js      huellas de las ruedas
+│   └── followCamera.js cámara que sigue al rover
 ├── world/
-│   ├── terrain.js     dunas y relieve (getHeight para asentar objetos)
+│   ├── terrain.js     dunas y relieve (altura exacta para apoyar objetos)
 │   ├── sky.js         shader del cielo y disco solar
 │   ├── lighting.js    sol con sombras + luz del cielo
 │   ├── rocks.js       rocas procedurales instanciadas
@@ -67,17 +92,23 @@ src/
 │   └── dust.js        polvo en suspensión
 ├── post/composer.js   bloom, viñeta y grano
 └── utils/noise.js     ruido simplex con semilla
+public/
+├── models/perseverance.glb  modelo oficial de la NASA (comprimido con Draco)
+└── draco/                   decodificador Draco local
 scripts/check.mjs      verificación headless
 ```
 
 ## 🛰️ Próximos pasos
 
 - [x] Paisaje marciano cinematográfico
-- [ ] Modelo del rover: cuerpo, mástil con Mastcam-Z/SuperCam y brazo robótico
-- [ ] Suspensión rocker-bogie y 6 ruedas que se adaptan al terreno
-- [ ] Conducción con teclado y gravedad de Marte (3.721 m/s²)
-- [ ] Cámaras desde el punto de vista del rover
+- [x] Modelo oficial del rover a tamaño real
+- [x] Conducción con teclado, huellas y cámara de seguimiento
+- [ ] Ruedas que giran al avanzar
+- [ ] Colisiones con las rocas
+- [ ] Vistas desde las cámaras del rover (Mastcam-Z, Navcams, Hazcams…)
 
 ## 📄 Licencia
 
-[MIT](LICENSE) · Proyecto de aprendizaje de [Platzi](https://platzi.com). No está afiliado a la NASA.
+Código bajo licencia [MIT](LICENSE) · Proyecto de aprendizaje de [Platzi](https://platzi.com). No está afiliado a la NASA.
+
+Modelo 3D de Perseverance: [NASA-3D-Resources](https://github.com/nasa/NASA-3D-Resources), cortesía de NASA/JPL-Caltech.
