@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { createWheelRig } from './wheels.js';
 
 // Modelo oficial de la NASA (NASA-3D-Resources). Ya viene en metros con el frente hacia +Z.
 const MODEL_URL = '/models/perseverance.glb';
+const TIRE_WIDTH = 0.34; // ancho medido del neumático en el modelo
 
 // Piezas del modelo que son cámaras (los nombres los normaliza GLTFLoader)
 const CAMERA_INFO = {
@@ -45,12 +47,6 @@ export async function loadRover() {
 
   const model = gltf.scene;
   applyDrivingPose(model, gltf.animations);
-  model.traverse((obj) => {
-    if (obj.isMesh) {
-      obj.castShadow = true;
-      obj.receiveShadow = true;
-    }
-  });
 
   // Apoya las ruedas en y = 0 y pone el origen en el centro del tren de ruedas,
   // que es el eje sobre el que gira el rover
@@ -62,14 +58,21 @@ export async function loadRover() {
   rover.name = 'perseverance';
   rover.add(model);
 
+  // Separa las 6 ruedas para que rueden y se orienten
+  const wheelRig = createWheelRig(rover);
+
+  model.traverse((obj) => {
+    if (obj.isMesh) {
+      obj.castShadow = true;
+      obj.receiveShadow = true;
+    }
+  });
+
   // Medidas del tren de ruedas para apoyarlo en el terreno y dibujar las huellas
-  const wheelSize = wheelBox.getSize(new THREE.Vector3());
-  const wheelRadius = wheelSize.y / 2;
-  const wheelWidth = 0.4;
   const wheels = {
-    halfTrack: wheelSize.x / 2 - wheelWidth / 2,
-    halfBase: wheelSize.z / 2 - wheelRadius,
-    width: wheelWidth,
+    halfTrack: wheelRig.halfTrack,
+    halfBase: wheelRig.halfBase,
+    width: TIRE_WIDTH,
   };
 
   const size = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
@@ -87,5 +90,5 @@ export async function loadRover() {
     cameras.map((obj) => ({ nombre: obj.name, descripcion: CAMERA_INFO[obj.name] ?? '' })),
   );
 
-  return { rover, cameras, size, wheels };
+  return { rover, cameras, size, wheels, wheelRig };
 }

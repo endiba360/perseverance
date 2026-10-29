@@ -25,9 +25,9 @@ controls.update();
 let driver = null;
 let follow = null;
 loadRover()
-  .then(({ rover, wheels }) => {
+  .then(({ rover, wheels, wheelRig }) => {
     scene.add(rover);
-    driver = new RoverController(rover, wheels, ROVER_START);
+    driver = new RoverController(rover, wheels, { ...ROVER_START, wheelRig });
     tracks.configure(wheels);
     follow = new FollowCamera(camera, controls, driver);
     installDebugHooks({ driver, tracks, follow });

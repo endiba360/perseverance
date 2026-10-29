@@ -10,9 +10,11 @@ const TURN_RATE = 0.7; // rad/s (puede girar sobre su eje)
 
 export class RoverController {
   // wheels: { halfTrack, halfBase } medidos del modelo (metros, frente hacia +Z)
-  constructor(rover, wheels, { x = 0, z = 0, heading = 0 } = {}) {
+  // wheelRig: opcional, anima el giro y la dirección de las ruedas (wheels.js)
+  constructor(rover, wheels, { x = 0, z = 0, heading = 0, wheelRig = null } = {}) {
     this.rover = rover;
     this.wheels = wheels;
+    this.wheelRig = wheelRig;
     this.position = new THREE.Vector3(x, 0, z);
     this.heading = heading; // rotación en Y; 0 = mira hacia +Z
     this.speed = 0;
@@ -56,6 +58,7 @@ export class RoverController {
 
     this.position.addScaledVector(this.forward, this.speed * delta);
     this._placeOnGround(Math.min(delta * 8, 1));
+    this.wheelRig?.update(delta, this.speed, this.turnSpeed);
   }
 
   // Altura e inclinación según el terreno bajo las 6 ruedas. El modelo es rígido,

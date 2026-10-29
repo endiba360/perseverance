@@ -22,6 +22,7 @@ Simulación 3D del rover Perseverance de la NASA en el cráter Jezero, construid
 |---|---|
 | 🛰️ **Modelo oficial** | El GLB de [NASA-3D-Resources](https://github.com/nasa/NASA-3D-Resources) a tamaño real: 2.70 m de ancho, 3.11 m de largo y 2.23 m de alto, con el mástil desplegado y el brazo guardado, como cuando conduce. |
 | 🎮 **Conducción** | Avanza, retrocede y gira sobre su eje. Se apoya en sus 6 ruedas y se inclina siguiendo las dunas. |
+| 🛞 **Ruedas** | Las 6 ruedas ruedan según la velocidad y las 4 de las esquinas se orientan como en el rover real: en curva al avanzar y en diamante al girar en el sitio. |
 | 👣 **Huellas** | Dos bandas sobre la arena con el relieve en chevrón de los grousers, marcado por la luz rasante del sol. |
 | 🎥 **Cámara de seguimiento** | Se coloca detrás del rover al conducir y puedes girarla alrededor con el mouse. |
 | 📷 **Cámaras a bordo** | Al cargar, la consola lista las 8 cámaras del modelo: Mastcam-Z, SuperCam, Navcams, Hazcams, WATSON y las de descenso. |
@@ -83,6 +84,7 @@ src/
 ├── rover/
 │   ├── rover.js       carga del modelo, pose de conducción y lista de cámaras
 │   ├── controller.js  conducción e inclinación sobre el terreno
+│   ├── wheels.js      ruedas separadas: rodadura y dirección
 │   ├── tracks.js      huellas de las ruedas
 │   └── followCamera.js cámara que sigue al rover
 ├── world/
@@ -108,7 +110,7 @@ scripts/
 - [x] Paisaje marciano cinematográfico
 - [x] Modelo oficial del rover a tamaño real
 - [x] Conducción con teclado, huellas y cámara de seguimiento
-- [ ] Ruedas que giran al avanzar
+- [x] Ruedas que giran y dirección de las 4 esquinas
 - [ ] Colisiones con las rocas
 - [ ] Vistas desde las cámaras del rover (Mastcam-Z, Navcams, Hazcams…)
 

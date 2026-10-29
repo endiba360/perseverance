@@ -42,6 +42,7 @@ src/
                        de la malla dibujada (mismos triángulos que PlaneGeometry); usa esta para apoyar cosas
   rover/rover.js       carga el GLB (Draco), fija la pose de conducción y lista las piezas que son cámaras
   rover/controller.js  conducción WASD/flechas; apoya el rover en sus 6 ruedas e inclina según el terreno
+  rover/wheels.js      separa las 6 ruedas del modelo; rodadura y dirección de las esquinas
   rover/tracks.js      huellas: tiras con búfer circular y textura de grousers
   rover/followCamera.js OrbitControls que siguen al rover y se colocan detrás al conducir
   world/sky.js         shader del cielo (degradado, polvo, halo azulado, disco solar HDR)
@@ -61,7 +62,8 @@ scripts/copy-draco.mjs copia el decodificador Draco de three a public/draco/
 
 - Ya viene en metros (2.70 × 3.11 × 2.23 m con el mástil levantado) y con el frente hacia +Z: no se escala.
 - Trae 23 animaciones que despliegan y vuelven a plegar el rover. `rover.js` congela t = 10 s (mástil arriba) y deja el brazo en t = 0 (guardado).
-- Ruedas, suspensión y mástil son mallas únicas (`Wheels_objs`, `suspension`): no se pueden girar las ruedas por separado sin dividir el modelo.
+- Las 6 ruedas vienen fusionadas en `Wheels_objs` (3 mallas: llanta, neumático y tapa, cada una con las 6 ruedas). `rover/wheels.js` reparte los triángulos por posición y crea por rueda `wheel_XX` (dirección, eje Y) → spin (rodadura, eje X). Radio ≈ 0.26 m, ancho del neumático 0.34 m. La suspensión (`suspension`) sigue siendo una malla única y rígida.
+- Cinemática de las ruedas: con avance v y giro ω, la rueda en (x, z) va a (ω·z, v − ω·x). Las 4 esquinas se orientan en esa dirección (Ackermann al girar avanzando, diamante a ~45° al girar en el sitio) y las centrales son fijas, como en el rover real.
 - Cámaras (las imprime la consola al cargar): `lens` (SuperCam), `Mastcam_Z_cams`, `NavCams`, `hazcams_front`, `hazcams_rear`, `WATSON`, `Up_Look_Camera`, `Down_Look_Camera`.
 - Velocidad jugable de 2.5 m/s (el real va a ~4.2 cm/s).
 
@@ -77,7 +79,7 @@ scripts/copy-draco.mjs copia el decodificador Draco de three a public/draco/
 - Idioma: la comunicación con el usuario es en español. Comentarios y documentación en español; nombres de variables, funciones y archivos en inglés.
 - Unidades del mundo 3D en metros, para usar las dimensiones reales del rover (aprox. 3 m de largo, 2.7 m de ancho, 2.2 m de alto, ~1025 kg) y la gravedad de Marte (3.721 m/s²).
 - Organiza el código por responsabilidad: `world/` (paisaje), `rover/` (rover), `post/` (efectos), `engine.js` (render). `main.js` solo conecta piezas; la lógica nueva va en su propio módulo.
-- El modelo de la NASA trae ruedas y suspensión como mallas únicas. Si una parte necesita moverse por separado (p. ej. ruedas que giran), sepárala en código dentro de `rover/` como un módulo propio.
+- El modelo de la NASA trae varias piezas fusionadas en mallas únicas. Si una parte necesita moverse por separado, sepárala en código dentro de `rover/` como un módulo propio (como `wheels.js`).
 - Archivos binarios grandes: el GLB (~5 MB) va directo en git. Si se agregan más modelos o texturas pesadas, usa Git LFS.
 - Commits: no agregues líneas de autoría ni coautoría (`Co-Authored-By`, "Generated with Claude Code", etc.) a los mensajes de commit ni a las descripciones de PR. Mensajes en español, con prefijo tipo `feat:`, `fix:`, `docs:`, `chore:`.
 - Entorno de desarrollo: Windows 11; el repositorio vive dentro de OneDrive, así que evita depender de rutas absolutas y añade `node_modules/` y `dist/` al `.gitignore`.
