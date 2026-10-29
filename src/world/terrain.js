@@ -36,6 +36,30 @@ export function getHeight(x, z) {
   return hills * (0.35 + 0.65 * near) + dunes * (0.25 + 0.75 * near) + bumps;
 }
 
+export const TERRAIN_SIZE = 900;
+export const TERRAIN_SEGMENTS = 450;
+const CELL = TERRAIN_SIZE / TERRAIN_SEGMENTS;
+
+// Altura de la malla tal como se dibuja: interpola sobre los mismos dos triángulos
+// por celda que genera PlaneGeometry (diagonal de (x0, z0+1) a (x0+1, z0)).
+// Úsala para apoyar objetos que deben tocar el suelo visible: rover, huellas.
+export function getSurfaceHeight(x, z) {
+  const gx = (x + TERRAIN_SIZE / 2) / CELL;
+  const gz = (z + TERRAIN_SIZE / 2) / CELL;
+  const x0 = Math.floor(gx) * CELL - TERRAIN_SIZE / 2;
+  const z0 = Math.floor(gz) * CELL - TERRAIN_SIZE / 2;
+  const fx = gx - Math.floor(gx);
+  const fz = gz - Math.floor(gz);
+  const h10 = getHeight(x0 + CELL, z0);
+  const h01 = getHeight(x0, z0 + CELL);
+  if (fx + fz <= 1) {
+    const h00 = getHeight(x0, z0);
+    return h00 + (h10 - h00) * fx + (h01 - h00) * fz;
+  }
+  const h11 = getHeight(x0 + CELL, z0 + CELL);
+  return h11 + (h01 - h11) * (1 - fx) + (h10 - h11) * (1 - fz);
+}
+
 // Textura procedural de rizos de arena para dar grano de cerca (bump map)
 function createRippleTexture() {
   const size = 512;
@@ -67,7 +91,7 @@ function createRippleTexture() {
   return texture;
 }
 
-export function createTerrain({ size = 900, segments = 450 } = {}) {
+export function createTerrain({ size = TERRAIN_SIZE, segments = TERRAIN_SEGMENTS } = {}) {
   const geometry = new THREE.PlaneGeometry(size, size, segments, segments);
   geometry.rotateX(-Math.PI / 2);
 

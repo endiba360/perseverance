@@ -21,6 +21,7 @@ const browser = await chromium.launch({
 
 const errors = [];
 const warnings = [];
+const logs = [];
 let exitCode = 0;
 
 try {
@@ -29,6 +30,7 @@ try {
     const text = `[console.${msg.type()}] ${msg.text()}`;
     if (msg.type() === 'error') errors.push(text);
     else if (msg.type() === 'warning') warnings.push(text);
+    else if (msg.type() === 'log' || msg.type() === 'info') logs.push(text);
   });
   page.on('pageerror', (err) => errors.push(`[pageerror] ${err.message}`));
   page.on('requestfailed', (req) => errors.push(`[requestfailed] ${req.url()} ${req.failure()?.errorText}`));
@@ -40,7 +42,38 @@ try {
   } catch {
     errors.push('[check] La escena no marcó window.__sceneReady en 60 s');
   }
-  // Deja correr unos frames más (polvo, bloom) antes de capturar
+  // Conduce un poco (W y luego W+A) para que se vean huellas y la cámara siguiendo
+  const roverState = () =>
+    page.evaluate(() => {
+      const r = window.__rover;
+      return r ? `x=${r.position.x.toFixed(2)} z=${r.position.z.toFixed(2)} rumbo=${r.heading.toFixed(2)}` : 'sin rover';
+    });
+  const fps = await page.evaluate(
+    () => new Promise((resolve) => {
+      let n = 0;
+      const t0 = performance.now();
+      const tick = () => (++n < 10 ? requestAnimationFrame(tick) : resolve((n * 1000) / (performance.now() - t0)));
+      requestAnimationFrame(tick);
+    }),
+  );
+  logs.push(`[check] ${fps.toFixed(1)} FPS en headless`);
+  logs.push(`[check] rover antes de conducir: ${await roverState()}`);
+  await page.keyboard.down('KeyW');
+  await page.waitForTimeout(4000);
+  await page.keyboard.down('KeyA');
+  await page.waitForTimeout(2000);
+  await page.keyboard.up('KeyA');
+  await page.keyboard.up('KeyW');
+  logs.push(`[check] rover tras teclas reales: ${await roverState()}`);
+  // Con tan pocos FPS el teclado apenas lo mueve: simula un recorrido a paso fijo
+  await page.evaluate(() => {
+    window.__drive(6, ['KeyW']);
+    window.__drive(3, ['KeyW', 'KeyA']);
+    window.__drive(3, ['KeyW']);
+    window.__drive(2, []); // frena
+  });
+  logs.push(`[check] rover tras recorrido simulado: ${await roverState()}`);
+  // Deja correr unos frames más (frenado, polvo, bloom) antes de capturar
   await page.waitForTimeout(2500);
 
   await mkdir(fileURLToPath(new URL('../screenshots', import.meta.url)), { recursive: true });
@@ -56,6 +89,10 @@ try {
 // Avisos del renderizador por software que no son errores de la escena
 const noise = /GPU stall|swiftshader|Automatic fallback to software WebGL/i;
 const realWarnings = warnings.filter((w) => !noise.test(w));
+if (logs.length) {
+  console.log(`\nMensajes (${logs.length}):`);
+  logs.forEach((l) => console.log(`  ${l}`));
+}
 if (realWarnings.length) {
   console.log(`\nAvisos (${realWarnings.length}):`);
   realWarnings.forEach((w) => console.log(`  ${w}`));

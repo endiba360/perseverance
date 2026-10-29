@@ -14,7 +14,7 @@ Objetivos de la simulación:
 
 ## Estado actual
 
-Paisaje marciano cinematográfico funcionando (dunas, rocas, cielo caramelo con polvo, sol de tarde con sombras suaves, Fobos y Deimos). El rover aún no está modelado.
+Paisaje marciano cinematográfico (dunas, rocas, cielo caramelo con polvo, sol de tarde, Fobos y Deimos) con el modelo oficial de Perseverance de la NASA a tamaño real: se conduce con WASD/flechas, deja huellas y la cámara lo sigue. Pendiente: vistas desde las cámaras del rover.
 
 ## Stack
 
@@ -35,7 +35,12 @@ Paisaje marciano cinematográfico funcionando (dunas, rocas, cielo caramelo con 
 index.html
 src/
   main.js              renderer, cámara, OrbitControls, bucle de animación
-  world/terrain.js     dunas + relieve; exporta getHeight(x, z) para asentar objetos
+  world/terrain.js     dunas + relieve; getHeight(x, z) = función exacta, getSurfaceHeight(x, z) = altura
+                       de la malla dibujada (mismos triángulos que PlaneGeometry); usa esta para apoyar cosas
+  rover/rover.js       carga el GLB (Draco), fija la pose de conducción y lista las piezas que son cámaras
+  rover/controller.js  conducción WASD/flechas; apoya el rover en sus 6 ruedas e inclina según el terreno
+  rover/tracks.js      huellas: tiras con búfer circular y textura de grousers
+  rover/followCamera.js OrbitControls que siguen al rover y se colocan detrás al conducir
   world/sky.js         shader del cielo (degradado, polvo, halo azulado, disco solar HDR)
   world/lighting.js    sol direccional con sombras (sigue al objetivo de la cámara) + hemisférica
   world/rocks.js       rocas procedurales con InstancedMesh
@@ -43,14 +48,26 @@ src/
   world/dust.js        partículas de polvo con viento
   post/composer.js     bloom + OutputPass + viñeta/grano
   utils/noise.js       ruido simplex con semilla, fbm, PRNG
+public/models/perseverance.glb  modelo oficial (NASA-3D-Resources), comprimido con Draco
+public/draco/          decodificador Draco copiado de three/examples/jsm/libs/draco/gltf (sin CDN)
 scripts/check.mjs      verificación headless
 ```
+
+## Modelo del rover
+
+- Ya viene en metros (2.70 × 3.11 × 2.23 m con el mástil levantado) y con el frente hacia +Z: no se escala.
+- Trae 23 animaciones que despliegan y vuelven a plegar el rover. `rover.js` congela t = 10 s (mástil arriba) y deja el brazo en t = 0 (guardado).
+- Ruedas, suspensión y mástil son mallas únicas (`Wheels_objs`, `suspension`): no se pueden girar las ruedas por separado sin dividir el modelo.
+- Cámaras (las imprime la consola al cargar): `lens` (SuperCam), `Mastcam_Z_cams`, `NavCams`, `hazcams_front`, `hazcams_rear`, `WATSON`, `Up_Look_Camera`, `Down_Look_Camera`.
+- Velocidad jugable de 2.5 m/s (el real va a ~4.2 cm/s).
 
 ## Notas de Three.js r186
 
 - `PCFSoftShadowMap` fue eliminado: usa `PCFShadowMap` con `light.shadow.radius` para sombras suaves.
 - `THREE.Clock` está obsoleto: usa `THREE.Timer` (`timer.update(timestamp)` en el bucle).
-- La escena pone `window.__sceneReady = true` tras los primeros frames; `npm run check` lo espera.
+- La escena pone `window.__sceneReady = true` cuando el rover ya está en escena; `npm run check` lo espera.
+- En headless el WebGL por software va a <1 FPS, así que el check usa `window.__drive(segundos, teclas)` para simular la conducción a paso fijo. `window.__rover` expone el controlador para depurar.
+- `alphaMap` lee el canal verde, no el alfa: para transparencias dibujadas en canvas usa `map` con RGBA.
 
 ## Convenciones
 
