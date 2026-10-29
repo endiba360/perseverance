@@ -33,7 +33,7 @@ Todo es **procedural**: no se descargan texturas ni modelos, solo código.
 Requiere [Node.js](https://nodejs.org/) 20 o superior.
 
 ```bash
-git clone https://github.com/<tu-usuario>/perseverance.git
+git clone https://github.com/endiba360/perseverance.git
 cd perseverance
 npm install
 npm run dev
