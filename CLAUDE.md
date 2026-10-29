@@ -24,7 +24,7 @@ Paisaje marciano cinematográfico (dunas, rocas, cielo caramelo con polvo, sol d
 
 ## Comandos
 
-- `npm install`: instala dependencias.
+- `npm install`: instala dependencias y, en `postinstall`, copia el decodificador Draco a `public/draco/` (no está en git).
 - `npm run dev`: servidor de desarrollo en http://localhost:5173 (con HMR).
 - `npm run build` / `npm run preview`: build de producción en `dist/` y su vista previa.
 - `npm run check`: levanta Vite en otro puerto, abre la página en Chrome headless (WebGL por SwiftShader), guarda `screenshots/check.png` y lista errores/avisos de consola; termina con código 1 si hay errores. Córrelo tras cada cambio visual grande y revisa la captura.
@@ -34,7 +34,10 @@ Paisaje marciano cinematográfico (dunas, rocas, cielo caramelo con polvo, sol d
 ```
 index.html
 src/
-  main.js              renderer, cámara, OrbitControls, bucle de animación
+  main.js              punto de entrada: arma motor + mundo + rover y define qué se actualiza cada frame
+  engine.js            renderer, escena, cámara, OrbitControls, posprocesado, resize y bucle de animación
+  debug.js             ganchos en window para la consola y npm run check (no son parte de la simulación)
+  world/world.js       arma el paisaje completo y lo actualiza cada frame
   world/terrain.js     dunas + relieve; getHeight(x, z) = función exacta, getSurfaceHeight(x, z) = altura
                        de la malla dibujada (mismos triángulos que PlaneGeometry); usa esta para apoyar cosas
   rover/rover.js       carga el GLB (Draco), fija la pose de conducción y lista las piezas que son cámaras
@@ -49,8 +52,9 @@ src/
   post/composer.js     bloom + OutputPass + viñeta/grano
   utils/noise.js       ruido simplex con semilla, fbm, PRNG
 public/models/perseverance.glb  modelo oficial (NASA-3D-Resources), comprimido con Draco
-public/draco/          decodificador Draco copiado de three/examples/jsm/libs/draco/gltf (sin CDN)
+public/draco/          decodificador Draco (generado por npm install, ignorado en git; sin CDN)
 scripts/check.mjs      verificación headless
+scripts/copy-draco.mjs copia el decodificador Draco de three a public/draco/
 ```
 
 ## Modelo del rover
@@ -65,14 +69,15 @@ scripts/check.mjs      verificación headless
 
 - `PCFSoftShadowMap` fue eliminado: usa `PCFShadowMap` con `light.shadow.radius` para sombras suaves.
 - `THREE.Clock` está obsoleto: usa `THREE.Timer` (`timer.update(timestamp)` en el bucle).
-- La escena pone `window.__sceneReady = true` cuando el rover ya está en escena; `npm run check` lo espera.
-- En headless el WebGL por software va a <1 FPS, así que el check usa `window.__drive(segundos, teclas)` para simular la conducción a paso fijo. `window.__rover` expone el controlador para depurar.
+- Ganchos de `src/debug.js`: `window.__sceneReady` se activa cuando el rover ya está en escena (el check lo espera); como en headless el WebGL por software va a <1 FPS, el check usa `window.__drive(segundos, teclas)` para conducir a paso fijo; `window.__rover` expone el controlador. Todo gancho nuevo para pruebas va en ese archivo, no en `main.js`.
 - `alphaMap` lee el canal verde, no el alfa: para transparencias dibujadas en canvas usa `map` con RGBA.
 
 ## Convenciones
 
 - Idioma: la comunicación con el usuario es en español. Comentarios y documentación en español; nombres de variables, funciones y archivos en inglés.
 - Unidades del mundo 3D en metros, para usar las dimensiones reales del rover (aprox. 3 m de largo, 2.7 m de ancho, 2.2 m de alto, ~1025 kg) y la gravedad de Marte (3.721 m/s²).
-- Mantén cada parte del rover (ruedas, suspensión, mástil, brazo) como un componente separado y reutilizable.
+- Organiza el código por responsabilidad: `world/` (paisaje), `rover/` (rover), `post/` (efectos), `engine.js` (render). `main.js` solo conecta piezas; la lógica nueva va en su propio módulo.
+- El modelo de la NASA trae ruedas y suspensión como mallas únicas. Si una parte necesita moverse por separado (p. ej. ruedas que giran), sepárala en código dentro de `rover/` como un módulo propio.
+- Archivos binarios grandes: el GLB (~5 MB) va directo en git. Si se agregan más modelos o texturas pesadas, usa Git LFS.
 - Commits: no agregues líneas de autoría ni coautoría (`Co-Authored-By`, "Generated with Claude Code", etc.) a los mensajes de commit ni a las descripciones de PR. Mensajes en español, con prefijo tipo `feat:`, `fix:`, `docs:`, `chore:`.
 - Entorno de desarrollo: Windows 11; el repositorio vive dentro de OneDrive, así que evita depender de rutas absolutas y añade `node_modules/` y `dist/` al `.gitignore`.

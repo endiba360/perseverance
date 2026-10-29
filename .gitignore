@@ -3,6 +3,9 @@ node_modules/
 dist/
 .vite/
 
+# Decodificador Draco: lo copia npm install (scripts/copy-draco.mjs)
+public/draco/
+
 # Capturas generadas por npm run check
 screenshots/
 

@@ -77,13 +77,16 @@ Abre la escena en tu Chrome instalado en modo invisible (con [Playwright](https:
 
 ```
 src/
-├── main.js            renderer, cámara, controles y bucle de animación
+├── main.js            punto de entrada: conecta motor, mundo y rover
+├── engine.js          renderer, cámara, controles y bucle de animación
+├── debug.js           ganchos para la consola y npm run check
 ├── rover/
 │   ├── rover.js       carga del modelo, pose de conducción y lista de cámaras
 │   ├── controller.js  conducción e inclinación sobre el terreno
 │   ├── tracks.js      huellas de las ruedas
 │   └── followCamera.js cámara que sigue al rover
 ├── world/
+│   ├── world.js       arma el paisaje completo
 │   ├── terrain.js     dunas y relieve (altura exacta para apoyar objetos)
 │   ├── sky.js         shader del cielo y disco solar
 │   ├── lighting.js    sol con sombras + luz del cielo
@@ -94,8 +97,10 @@ src/
 └── utils/noise.js     ruido simplex con semilla
 public/
 ├── models/perseverance.glb  modelo oficial de la NASA (comprimido con Draco)
-└── draco/                   decodificador Draco local
-scripts/check.mjs      verificación headless
+└── draco/                   decodificador Draco (lo copia npm install)
+scripts/
+├── check.mjs          verificación headless
+└── copy-draco.mjs     copia el decodificador Draco desde three
 ```
 
 ## 🛰️ Próximos pasos
