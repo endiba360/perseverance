@@ -61,6 +61,7 @@ Abre http://localhost:5173, haz clic en la escena y conduce:
 | `S` / `↓` | Retroceder |
 | `A` / `←` | Girar a la izquierda |
 | `D` / `→` | Girar a la derecha |
+| `T` | Mostrar u ocultar el control de misión |
 | Arrastrar con el mouse | Girar la cámara alrededor del rover |
 | Rueda del mouse | Acercar / alejar |
 

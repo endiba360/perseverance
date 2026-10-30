@@ -5,7 +5,11 @@ import { loadRover } from './rover/rover.js';
 import { RoverController } from './rover/controller.js';
 import { Tracks } from './rover/tracks.js';
 import { FollowCamera } from './rover/followCamera.js';
-import { installDebugHooks, markFrameRendered } from './debug.js';
+import { TelemetryAPI } from './telemetry/telemetry.js';
+import { createWaypointsProvider } from './telemetry/waypointsProvider.js';
+import { createLightTimeProvider } from './telemetry/lightTimeProvider.js';
+import { MissionControl } from './hud/missionControl.js';
+import { installDebugHooks, installMissionHooks, markFrameRendered } from './debug.js';
 
 // El rover arranca en el claro sin rocas, mirando hacia el sol
 const ROVER_START = { x: 0, z: 10, heading: Math.PI };
@@ -14,6 +18,12 @@ const { scene, camera, controls, start } = createEngine();
 const world = createWorld(scene);
 const tracks = new Tracks();
 scene.add(tracks.group);
+
+// Control de misión: datos reales de Percy, cada uno servido por su proveedor
+const telemetry = new TelemetryAPI();
+telemetry.addProvider(createWaypointsProvider());
+telemetry.addProvider(createLightTimeProvider());
+installMissionHooks(new MissionControl(telemetry));
 
 // Cámara inicial: detrás y a un lado del punto de partida
 const startGround = getSurfaceHeight(ROVER_START.x, ROVER_START.z);

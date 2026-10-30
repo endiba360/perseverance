@@ -18,6 +18,17 @@ export function installDebugHooks({ driver, tracks, follow }) {
   };
 }
 
+// window.__mission: el panel de control de misión. readings() devuelve el
+// último valor de cada dato que ya llegó; visible dice si T lo dejó a la vista.
+export function installMissionHooks(missionControl) {
+  window.__mission = {
+    readings: () => Object.fromEntries(missionControl.readings),
+    get visible() {
+      return missionControl.visible;
+    },
+  };
+}
+
 // window.__sceneReady: se activa tras unos frames con el rover en escena.
 // npm run check lo espera antes de conducir y capturar.
 let framesRendered = 0;
