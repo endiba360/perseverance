@@ -181,6 +181,87 @@ try {
     return lines;
   });
   wheelReport.forEach((line) => logs.push(`[check] ${line}`));
+
+  // Rocas: la grande debe frenar al rover sin traslaparse y la pequeña debe
+  // levantarlo al pasar. Se conduce solo el controlador (sin huellas) y luego el
+  // rover vuelve a donde estaba, para no alterar la captura.
+  const rockReport = await page.evaluate(() => {
+    const d = window.__rover;
+    const field = window.__rocks;
+    const saved = { x: d.position.x, z: d.position.z, heading: d.heading };
+    const { halfTrack, halfBase, width, radius } = d.wheels;
+    const step = (seconds, codes) => {
+      codes.forEach((c) => d.keys.add(c));
+      const samples = [];
+      for (let t = 0; t < seconds; t += 1 / 30) {
+        d.update(1 / 30);
+        const q = d.rover.quaternion;
+        samples.push({ x: d.position.x, z: d.position.z, y: d.position.y, upY: 1 - 2 * (q.x * q.x + q.z * q.z) });
+      }
+      codes.forEach((c) => d.keys.delete(c));
+      return samples;
+    };
+    // Coloca el rover a `back` metros de un punto, mirándolo y corrido `offset` de lado
+    const aim = (target, back, offset = 0) => {
+      const dx = target.x - saved.x;
+      const dz = target.z - saved.z;
+      d.heading = Math.atan2(dx, dz);
+      const fx = Math.sin(d.heading), fz = Math.cos(d.heading);
+      d.position.set(target.x - fx * back + fz * offset, 0, target.z - fz * back - fx * offset);
+      d.speed = 0;
+      d.turnSpeed = 0;
+      d._placeOnGround(1);
+    };
+    const near = (list) =>
+      list.sort((a, b) => Math.hypot(a.x - saved.x, a.z - saved.z) - Math.hypot(b.x - saved.x, b.z - saved.z))[0];
+    const result = { errors: [], lines: [] };
+
+    // Roca grande: de frente, 6 s con W
+    const big = near(field.rocks.filter((r) => !r.climbable));
+    aim(big, big.radius + halfBase + radius + 3);
+    step(6, ['KeyW']);
+    const fx = Math.sin(d.heading), fz = Math.cos(d.heading);
+    const dx = big.x - d.position.x, dz = big.z - d.position.z;
+    const along = Math.max(-halfBase - radius, Math.min(halfBase + radius, dx * fx + dz * fz));
+    const side = Math.max(-halfTrack - width / 2, Math.min(halfTrack + width / 2, dx * fz - dz * fx));
+    const gap = Math.hypot(dx - fx * along - fz * side, dz - fz * along + fx * side) - big.radius;
+    result.lines.push(
+      `roca grande (alto ${big.height.toFixed(2)} m, radio ${big.radius.toFixed(2)} m): se detuvo a ${gap.toFixed(3)} m del borde, velocidad ${d.speed.toFixed(2)} m/s`,
+    );
+    if (gap < -0.01 || Math.abs(d.speed) > 0.05) result.errors.push('[check] El rover atravesó o no se detuvo ante la roca grande');
+
+    // Roca pequeña: la rueda izquierda pasa por encima; se compara con el mismo
+    // recorrido sin rocas para medir cuánto subió y se ladeó
+    const small = near(field.rocks.filter((r) => r.climbable && r.height > 0.15 && r.radius > 0.25));
+    const run = (rocks) => {
+      d.rocks = rocks;
+      aim(small, 4, -halfTrack);
+      return step(3.5, ['KeyW']);
+    };
+    const withRocks = run(field);
+    const without = run(null);
+    d.rocks = field;
+    let lift = 0;
+    let tilt = 0;
+    withRocks.forEach((s, i) => {
+      lift = Math.max(lift, s.y - without[i].y);
+      tilt = Math.max(tilt, Math.abs(Math.acos(Math.min(1, s.upY)) - Math.acos(Math.min(1, without[i].upY))));
+    });
+    const last = withRocks.at(-1);
+    const passed = (last.x - small.x) * Math.sin(d.heading) + (last.z - small.z) * Math.cos(d.heading) > 0;
+    result.lines.push(
+      `roca pequeña (alto ${small.height.toFixed(2)} m): el rover subió ${(lift * 100).toFixed(1)} cm, se ladeó ${((tilt * 180) / Math.PI).toFixed(1)}° y ${passed ? 'pasó al otro lado' : 'no la cruzó'}`,
+    );
+    if (lift < 0.03 || !passed) result.errors.push('[check] El rover no trepó la roca pequeña');
+
+    d.position.set(saved.x, 0, saved.z);
+    d.heading = saved.heading;
+    d.speed = 0;
+    d._placeOnGround(1);
+    return result;
+  });
+  rockReport.lines.forEach((line) => logs.push(`[check] ${line}`));
+  errors.push(...rockReport.errors);
   logs.push(`[check] rover tras recorrido simulado: ${await roverState()}`);
   // Mantiene W+A durante la captura para que se vean las ruedas orientadas
   await page.keyboard.down('KeyW');

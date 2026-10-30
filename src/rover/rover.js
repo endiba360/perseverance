@@ -73,6 +73,7 @@ export async function loadRover() {
     halfTrack: wheelRig.halfTrack,
     halfBase: wheelRig.halfBase,
     width: TIRE_WIDTH,
+    radius: wheelRig.radius,
   };
 
   const size = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());

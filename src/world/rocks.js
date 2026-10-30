@@ -26,7 +26,8 @@ function createRockGeometry(seed) {
   return geometry;
 }
 
-export function createRocks({ count = 900, seed = 3 } = {}) {
+// field: RockField donde se registra cada roca para las colisiones del rover
+export function createRocks(field, { count = 900, seed = 3 } = {}) {
   const group = new THREE.Group();
   group.name = 'rocks';
   const random = createRandom(seed);
@@ -41,7 +42,12 @@ export function createRocks({ count = 900, seed = 3 } = {}) {
   const tint = new THREE.Color();
 
   for (let k = 0; k < variants; k++) {
-    const mesh = new THREE.InstancedMesh(createRockGeometry(seed * 31 + k), material, perVariant);
+    const geometry = createRockGeometry(seed * 31 + k);
+    geometry.computeBoundingBox();
+    const box = geometry.boundingBox;
+    // Radio en planta algo menor que la caja: la roca gira en Y y su contorno es irregular
+    const footprint = Math.max(-box.min.x, box.max.x, -box.min.z, box.max.z) * 0.85;
+    const mesh = new THREE.InstancedMesh(geometry, material, perVariant);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     for (let i = 0; i < perVariant; i++) {
@@ -53,7 +59,9 @@ export function createRocks({ count = 900, seed = 3 } = {}) {
       const near = Math.min(Math.hypot(p.x, p.z - 18) / 25, 1);
       const size = (0.06 + Math.pow(random(), 6) * 1.1 + (random() < 0.015 ? 0.9 : 0)) * (0.35 + 0.65 * near);
       s.set(size, size, size);
-      p.y = getHeight(p.x, p.z) - size * 0.12;
+      const ground = getHeight(p.x, p.z);
+      p.y = ground - size * 0.12;
+      field.add({ x: p.x, z: p.z, radius: footprint * size, height: (box.max.y - 0.12) * size, base: ground });
       e.set((random() - 0.5) * 0.4, random() * Math.PI * 2, (random() - 0.5) * 0.4);
       q.setFromEuler(e);
       m.compose(p, q, s);

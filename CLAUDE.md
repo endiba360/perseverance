@@ -14,7 +14,7 @@ Objetivos de la simulación:
 
 ## Estado actual
 
-Paisaje marciano cinematográfico (dunas, rocas, cielo caramelo con polvo, sol de tarde, Fobos y Deimos) con el modelo oficial de Perseverance de la NASA a tamaño real: se conduce con WASD/flechas, deja huellas y la cámara lo sigue. Un panel de control de misión (tecla T) muestra 4 datos reales de Percy con el patrón de telemetría de Open MCT. Pendiente: colisiones con las rocas (hoy el rover las atraviesa) y vistas desde las cámaras del rover.
+Paisaje marciano cinematográfico (dunas, rocas, cielo caramelo con polvo, sol de tarde, Fobos y Deimos) con el modelo oficial de Perseverance de la NASA a tamaño real: se conduce con WASD/flechas, deja huellas y la cámara lo sigue. Un panel de control de misión (tecla T) muestra 4 datos reales de Percy con el patrón de telemetría de Open MCT. Las rocas de más de 40 cm lo detienen y las más bajas las trepa. Pendiente: vistas desde las cámaras del rover.
 
 ## Stack
 
@@ -43,6 +43,7 @@ src/
   rover/rover.js       carga el GLB (Draco), fija la pose de conducción y lista las piezas que son cámaras
   rover/controller.js  conducción WASD/flechas; apoya el rover en sus 6 ruedas e inclina según el terreno
   rover/wheels.js      separa las 6 ruedas del modelo; rodadura y dirección de las esquinas
+  rover/collisions.js  choque con las rocas grandes: rectángulo del rover contra círculo de cada roca
   rover/tracks.js      huellas: tiras con búfer circular y textura de grousers
   rover/followCamera.js OrbitControls que siguen al rover y se colocan detrás al conducir
   telemetry/telemetry.js  mini TelemetryAPI al estilo Open MCT: cada dato con nombre, unidad y proveedor;
@@ -54,7 +55,8 @@ src/
                        solo habla con la TelemetryAPI, nunca con las fuentes (estilos en missionControl.css)
   world/sky.js         shader del cielo (degradado, polvo, halo azulado, disco solar HDR)
   world/lighting.js    sol direccional con sombras (sigue al objetivo de la cámara) + hemisférica
-  world/rocks.js       rocas procedurales con InstancedMesh
+  world/rocks.js       rocas procedurales con InstancedMesh; registra cada una en el RockField
+  world/rockField.js   cuadrícula con posición, radio y altura de cada roca (near, heightAt)
   world/moons.js       Fobos y Deimos con sombreado propio
   world/dust.js        partículas de polvo con viento
   post/composer.js     bloom + OutputPass + viñeta/grano
@@ -72,6 +74,9 @@ scripts/copy-draco.mjs copia el decodificador Draco de three a public/draco/
 - Las 6 ruedas vienen fusionadas en `Wheels_objs` (3 mallas: llanta, neumático y tapa, cada una con las 6 ruedas). `rover/wheels.js` reparte los triángulos por posición y crea por rueda `wheel_XX` (dirección, eje Y) → spin (rodadura, eje X). Radio ≈ 0.26 m, ancho del neumático 0.34 m. La suspensión (`suspension`) sigue siendo una malla única y rígida.
 - Cinemática de las ruedas: con avance v y giro ω, la rueda en (x, z) va a (ω·z, v − ω·x). Las 4 esquinas se orientan en esa dirección (Ackermann al girar avanzando, diamante a ~45° al girar en el sitio) y las centrales son fijas, como en el rover real.
 - Cámaras (las imprime la consola al cargar): `lens` (SuperCam), `Mastcam_Z_cams`, `NavCams`, `hazcams_front`, `hazcams_rear`, `WATSON`, `Up_Look_Camera`, `Down_Look_Camera`.
+- Rocas: `CLIMB_LIMIT` = 0.4 m (lo que evita Percy real, casi el diámetro de la rueda).
+  - Las más bajas cuentan como suelo con perfil de domo (`RockField.heightAt`). Cada rueda muestrea su centro y ±radio, así que sube cuando el neumático toca la piedra.
+  - Las más altas bloquean (`collisions.js`): se empuja el rover fuera por la normal y pierde solo la parte de la velocidad que iba contra la roca. Así se desliza si llega en diagonal.
 - Velocidad jugable de 2.5 m/s (el real va a ~4.2 cm/s).
 
 ## Telemetría
@@ -84,7 +89,7 @@ scripts/copy-draco.mjs copia el decodificador Draco de three a public/draco/
 
 - `PCFSoftShadowMap` fue eliminado: usa `PCFShadowMap` con `light.shadow.radius` para sombras suaves.
 - `THREE.Clock` está obsoleto: usa `THREE.Timer` (`timer.update(timestamp)` en el bucle).
-- Ganchos de `src/debug.js`: `window.__sceneReady` se activa cuando el rover ya está en escena (el check lo espera); como en headless el WebGL por software va a <1 FPS, el check usa `window.__drive(segundos, teclas)` para conducir a paso fijo; `window.__rover` expone el controlador; `window.__mission` expone las lecturas del panel y si está visible. Todo gancho nuevo para pruebas va en ese archivo, no en `main.js`.
+- Ganchos de `src/debug.js`: `window.__sceneReady` se activa cuando el rover ya está en escena (el check lo espera); como en headless el WebGL por software va a <1 FPS, el check usa `window.__drive(segundos, teclas)` para conducir a paso fijo; `window.__rover` expone el controlador; `window.__rocks` el RockField; `window.__mission` expone las lecturas del panel y si está visible. Todo gancho nuevo para pruebas va en ese archivo, no en `main.js`.
 - `alphaMap` lee el canal verde, no el alfa: para transparencias dibujadas en canvas usa `map` con RGBA.
 
 ## Convenciones

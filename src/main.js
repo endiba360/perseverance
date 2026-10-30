@@ -37,7 +37,7 @@ let follow = null;
 loadRover()
   .then(({ rover, wheels, wheelRig }) => {
     scene.add(rover);
-    driver = new RoverController(rover, wheels, { ...ROVER_START, wheelRig });
+    driver = new RoverController(rover, wheels, { ...ROVER_START, wheelRig, rocks: world.rocks });
     tracks.configure(wheels);
     follow = new FollowCamera(camera, controls, driver);
     installDebugHooks({ driver, tracks, follow });

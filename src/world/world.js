@@ -3,6 +3,7 @@ import { createTerrain } from './terrain.js';
 import { createSky } from './sky.js';
 import { createLighting } from './lighting.js';
 import { createRocks } from './rocks.js';
+import { RockField } from './rockField.js';
 import { createMoons } from './moons.js';
 import { createDust } from './dust.js';
 
@@ -18,7 +19,8 @@ export function createWorld(scene) {
   const lighting = createLighting(SUN_DIR);
   const moons = createMoons();
   const dust = createDust();
-  scene.add(sky, lighting, createTerrain(), createRocks(), moons, dust);
+  const rocks = new RockField();
+  scene.add(sky, lighting, createTerrain(), createRocks(rocks), moons, dust);
 
   // focus: punto que deben cubrir las sombras (lo que mira la cámara)
   const update = (delta, time, camera, focus) => {
@@ -27,5 +29,6 @@ export function createWorld(scene) {
     lighting.userData.update(focus);
     dust.userData.update(time, delta, camera);
   };
-  return { update };
+  // rocks: posiciones y alturas de las rocas, para que el rover choque o las trepe
+  return { update, rocks };
 }

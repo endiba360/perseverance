@@ -4,8 +4,10 @@
 // window.__rover: el controlador del rover (posición, rumbo, velocidad).
 // window.__drive(segundos, teclas): conduce a paso fijo sin esperar frames;
 // el check lo necesita porque Chrome headless renderiza a menos de 1 FPS.
+// window.__rocks: el RockField (posición, radio y altura de cada roca).
 export function installDebugHooks({ driver, tracks, follow }) {
   window.__rover = driver;
+  window.__rocks = driver.rocks;
   window.__drive = (seconds, codes) => {
     const dt = 1 / 30;
     codes.forEach((c) => driver.keys.add(c));

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { getSurfaceHeight } from '../world/terrain.js';
+import { resolveRockCollisions } from './collisions.js';
 
 // Conducción con WASD (o flechas). El rover real va a ~4.2 cm/s; aquí se acelera
 // para que sea jugable, manteniendo su tamaño real.
@@ -9,12 +10,14 @@ const BRAKING = 4.0; // m/s²
 const TURN_RATE = 0.7; // rad/s (puede girar sobre su eje)
 
 export class RoverController {
-  // wheels: { halfTrack, halfBase } medidos del modelo (metros, frente hacia +Z)
+  // wheels: { halfTrack, halfBase, width, radius } medidos del modelo (metros, frente hacia +Z)
   // wheelRig: opcional, anima el giro y la dirección de las ruedas (wheels.js)
-  constructor(rover, wheels, { x = 0, z = 0, heading = 0, wheelRig = null } = {}) {
+  // rocks: opcional, RockField para chocar con las rocas grandes y trepar las pequeñas
+  constructor(rover, wheels, { x = 0, z = 0, heading = 0, wheelRig = null, rocks = null } = {}) {
     this.rover = rover;
     this.wheels = wheels;
     this.wheelRig = wheelRig;
+    this.rocks = rocks;
     this.position = new THREE.Vector3(x, 0, z);
     this.heading = heading; // rotación en Y; 0 = mira hacia +Z
     this.speed = 0;
@@ -57,19 +60,27 @@ export class RoverController {
     this.heading += this.turnSpeed * delta;
 
     this.position.addScaledVector(this.forward, this.speed * delta);
+    resolveRockCollisions(this, this.rocks);
     this._placeOnGround(Math.min(delta * 8, 1));
     this.wheelRig?.update(delta, this.speed, this.turnSpeed);
   }
 
   // Altura e inclinación según el terreno bajo las 6 ruedas. El modelo es rígido,
   // así que se ajusta el plano que mejor reparte el apoyo (como haría el rocker-bogie).
+  // Las piedras pequeñas cuentan como suelo: la rueda que pisa una sube y el rover se ladea.
   _placeOnGround(smoothing) {
-    const { halfTrack, halfBase } = this.wheels;
+    const { halfTrack, halfBase, radius } = this.wheels;
     const f = this.forward;
     const r = new THREE.Vector3(f.z, 0, -f.x); // eje X local del rover
     const p = this.position;
-    const sample = (sf, sr) =>
-      getSurfaceHeight(p.x + f.x * sf * halfBase + r.x * sr * halfTrack, p.z + f.z * sf * halfBase + r.z * sr * halfTrack);
+    const ground = (x, z) => Math.max(getSurfaceHeight(x, z), this.rocks ? this.rocks.heightAt(x, z) : -Infinity);
+    // Cada rueda mira su centro y sus bordes delantero y trasero: empieza a subir
+    // cuando el neumático toca la piedra, no cuando ya está encima
+    const sample = (sf, sr) => {
+      const x = p.x + f.x * sf * halfBase + r.x * sr * halfTrack;
+      const z = p.z + f.z * sf * halfBase + r.z * sr * halfTrack;
+      return Math.max(ground(x, z), ground(x + f.x * radius, z + f.z * radius), ground(x - f.x * radius, z - f.z * radius));
+    };
     // [delantera, media, trasera] de cada lado
     const left = [sample(1, 1), sample(0, 1), sample(-1, 1)];
     const right = [sample(1, -1), sample(0, -1), sample(-1, -1)];

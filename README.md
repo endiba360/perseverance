@@ -23,6 +23,7 @@ Simulación 3D del rover Perseverance de la NASA en el cráter Jezero, construid
 | 🛰️ **Modelo oficial** | El GLB de [NASA-3D-Resources](https://github.com/nasa/NASA-3D-Resources) a tamaño real: 2.70 m de ancho, 3.11 m de largo y 2.23 m de alto, con el mástil desplegado y el brazo guardado, como cuando conduce. |
 | 🎮 **Conducción** | Avanza, retrocede y gira sobre su eje. Se apoya en sus 6 ruedas y se inclina siguiendo las dunas. |
 | 🛞 **Ruedas** | Las 6 ruedas ruedan según la velocidad y las 4 de las esquinas se orientan como en el rover real: en curva al avanzar y en diamante al girar en el sitio. |
+| 🪨 **Rocas** | Las piedras de más de 40 cm (lo que evita el rover real) lo detienen, y si llega en diagonal se desliza por el borde. Las más bajas las trepa: la rueda que pisa una sube y el rover se ladea. |
 | 👣 **Huellas** | Dos bandas sobre la arena con el relieve en chevrón de los grousers, marcado por la luz rasante del sol. |
 | 🎥 **Cámara de seguimiento** | Se coloca detrás del rover al conducir y puedes girarla alrededor con el mouse. |
 | 📷 **Cámaras a bordo** | Al cargar, la consola lista las 8 cámaras del modelo: Mastcam-Z, SuperCam, Navcams, Hazcams, WATSON y las de descenso. |
@@ -90,7 +91,7 @@ Abre http://localhost:5173, haz clic en la escena y conduce:
 npm run check
 ```
 
-Abre la escena en tu Chrome instalado en modo invisible (con [Playwright](https://playwright.dev/) y sin descargar navegadores), simula un recorrido del rover, comprueba que el control de misión cargue sus 4 datos y que la tecla `T` lo oculte, guarda una captura en `screenshots/check.png` y lista los mensajes y errores de consola. Termina con código 1 si encuentra algún error.
+Abre la escena en tu Chrome instalado en modo invisible (con [Playwright](https://playwright.dev/) y sin descargar navegadores), simula un recorrido del rover, prueba que una roca grande lo detenga y que trepe una pequeña, comprueba que el control de misión cargue sus 4 datos y que la tecla `T` lo oculte, guarda una captura en `screenshots/check.png` y lista los mensajes y errores de consola. Termina con código 1 si encuentra algún error.
 
 ## 🗂️ Estructura
 
@@ -103,6 +104,7 @@ src/
 │   ├── rover.js       carga del modelo, pose de conducción y lista de cámaras
 │   ├── controller.js  conducción e inclinación sobre el terreno
 │   ├── wheels.js      ruedas separadas: rodadura y dirección
+│   ├── collisions.js  choque con las rocas grandes
 │   ├── tracks.js      huellas de las ruedas
 │   └── followCamera.js cámara que sigue al rover
 ├── telemetry/
@@ -118,6 +120,7 @@ src/
 │   ├── sky.js         shader del cielo y disco solar
 │   ├── lighting.js    sol con sombras + luz del cielo
 │   ├── rocks.js       rocas procedurales instanciadas
+│   ├── rockField.js   posición y altura de cada roca (para chocar o trepar)
 │   ├── moons.js       Fobos y Deimos
 │   └── dust.js        polvo en suspensión
 ├── post/composer.js   bloom, viñeta y grano
@@ -137,7 +140,7 @@ scripts/
 - [x] Conducción con teclado, huellas y cámara de seguimiento
 - [x] Ruedas que giran y dirección de las 4 esquinas
 - [x] Control de misión con telemetría real de Perseverance
-- [ ] Colisiones con las rocas
+- [x] Colisiones con las rocas y trepado de piedras pequeñas
 - [ ] Vistas desde las cámaras del rover (Mastcam-Z, Navcams, Hazcams…)
 
 ## 📄 Licencia
