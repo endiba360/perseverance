@@ -14,7 +14,7 @@ Objetivos de la simulación:
 
 ## Estado actual
 
-Paisaje marciano cinematográfico (dunas, rocas, cielo caramelo con polvo, sol de tarde, Fobos y Deimos) con el modelo oficial de Perseverance de la NASA a tamaño real: se conduce con WASD/flechas, deja huellas y la cámara lo sigue. Pendiente: vistas desde las cámaras del rover.
+Paisaje marciano cinematográfico (dunas, rocas, cielo caramelo con polvo, sol de tarde, Fobos y Deimos) con el modelo oficial de Perseverance de la NASA a tamaño real: se conduce con WASD/flechas, deja huellas y la cámara lo sigue. Un panel de control de misión (tecla T) muestra 4 datos reales de Percy con el patrón de telemetría de Open MCT. Pendiente: vistas desde las cámaras del rover.
 
 ## Stack
 
@@ -45,6 +45,12 @@ src/
   rover/wheels.js      separa las 6 ruedas del modelo; rodadura y dirección de las esquinas
   rover/tracks.js      huellas: tiras con búfer circular y textura de grousers
   rover/followCamera.js OrbitControls que siguen al rover y se colocan detrás al conducir
+  telemetry/telemetry.js  mini TelemetryAPI al estilo Open MCT: cada dato con nombre, unidad y proveedor;
+                       request() = historial de la misión, subscribe() = en vivo. Datos {sol, value}
+  telemetry/waypointsProvider.js  distancia, altura e inclinación del JSON de paradas de la NASA (M20_waypoints)
+  telemetry/lightTimeProvider.js  tiempo de luz Tierra-Marte en vivo
+  telemetry/orbits.js  posiciones de la Tierra y Marte (elementos keplerianos aproximados de JPL)
+  hud/missionControl.js  panel de control de misión (tecla T): valor, gráfica de la misión y frase por dato
   world/sky.js         shader del cielo (degradado, polvo, halo azulado, disco solar HDR)
   world/lighting.js    sol direccional con sombras (sigue al objetivo de la cámara) + hemisférica
   world/rocks.js       rocas procedurales con InstancedMesh
@@ -67,11 +73,17 @@ scripts/copy-draco.mjs copia el decodificador Draco de three a public/draco/
 - Cámaras (las imprime la consola al cargar): `lens` (SuperCam), `Mastcam_Z_cams`, `NavCams`, `hazcams_front`, `hazcams_rear`, `WATSON`, `Up_Look_Camera`, `Down_Look_Camera`.
 - Velocidad jugable de 2.5 m/s (el real va a ~4.2 cm/s).
 
+## Telemetría
+
+- Fuente: https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_waypoints.json (CORS abierto, se lee en vivo). Usa `dist_total_m`, `elev_geoid` (m sobre el areoide) y `tilt` (°); filtra `final === 'y'`, las demás paradas traen a veces la distancia en 0.
+- La NASA responde 403 a los navegadores con user agent `HeadlessChrome`: `npm run check` baja el JSON desde Node y lo entrega a la página con `page.route`. No disfraces el user agent.
+- Sol 0 = aterrizaje (2021-02-18 20:55 UTC); un sol dura 88 775.244 s.
+
 ## Notas de Three.js r186
 
 - `PCFSoftShadowMap` fue eliminado: usa `PCFShadowMap` con `light.shadow.radius` para sombras suaves.
 - `THREE.Clock` está obsoleto: usa `THREE.Timer` (`timer.update(timestamp)` en el bucle).
-- Ganchos de `src/debug.js`: `window.__sceneReady` se activa cuando el rover ya está en escena (el check lo espera); como en headless el WebGL por software va a <1 FPS, el check usa `window.__drive(segundos, teclas)` para conducir a paso fijo; `window.__rover` expone el controlador. Todo gancho nuevo para pruebas va en ese archivo, no en `main.js`.
+- Ganchos de `src/debug.js`: `window.__sceneReady` se activa cuando el rover ya está en escena (el check lo espera); como en headless el WebGL por software va a <1 FPS, el check usa `window.__drive(segundos, teclas)` para conducir a paso fijo; `window.__rover` expone el controlador; `window.__mission` expone las lecturas del panel y si está visible. Todo gancho nuevo para pruebas va en ese archivo, no en `main.js`.
 - `alphaMap` lee el canal verde, no el alfa: para transparencias dibujadas en canvas usa `map` con RGBA.
 
 ## Convenciones
