@@ -35,6 +35,19 @@ try {
   page.on('pageerror', (err) => errors.push(`[pageerror] ${err.message}`));
   page.on('requestfailed', (req) => errors.push(`[requestfailed] ${req.url()} ${req.failure()?.errorText}`));
 
+  // NASA responde 403 a los navegadores que se identifican como HeadlessChrome;
+  // el check baja el JSON real desde Node y se lo entrega a la página sin cambios
+  const waypointsUrl = 'https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_waypoints.json';
+  await page.route(waypointsUrl, async (route) => {
+    const res = await fetch(waypointsUrl);
+    await route.fulfill({
+      status: res.status,
+      contentType: 'application/json',
+      headers: { 'access-control-allow-origin': '*' },
+      body: await res.text(),
+    });
+  });
+
   console.log(`Abriendo ${url}`);
   await page.goto(url, { waitUntil: 'load' });
   try {
@@ -42,6 +55,52 @@ try {
   } catch {
     errors.push('[check] La escena no marcó window.__sceneReady en 60 s');
   }
+  // Control de misión: los 4 datos reales deben llegar y la tecla T debe ocultarlo
+  const missionKeys = ['distance', 'elevation', 'tilt', 'lightTime'];
+  try {
+    await page.waitForFunction(
+      (keys) => {
+        const r = window.__mission?.readings() ?? {};
+        return keys.every((k) => Number.isFinite(r[k]?.value));
+      },
+      missionKeys,
+      { timeout: 30000 },
+    );
+  } catch {
+    const got = await page.evaluate(() => Object.keys(window.__mission?.readings() ?? {}));
+    errors.push(`[check] Control de misión: faltan datos tras 30 s (llegaron: ${got.join(', ') || 'ninguno'})`);
+  }
+  const readings = await page.evaluate(() => window.__mission?.readings() ?? {});
+  for (const key of missionKeys) {
+    const r = readings[key];
+    if (r) logs.push(`[check] control de misión · ${key} = ${r.value.toFixed(3)} (sol ${Math.floor(r.sol)}, ${r.points} puntos)`);
+  }
+  // A menos de 1 FPS la transición tarda varios segundos: espera a que termine
+  const panelShown = async (visible) => {
+    try {
+      await page.waitForFunction(
+        (v) => getComputedStyle(document.querySelector('.mission')).visibility === v,
+        visible ? 'visible' : 'hidden',
+        { timeout: 15000 },
+      );
+    } catch {
+      // se reporta abajo con el estado que haya
+    }
+    return page.evaluate(() => ({
+      flag: window.__mission?.visible,
+      css: getComputedStyle(document.querySelector('.mission')).visibility,
+    }));
+  };
+  await page.keyboard.press('KeyT');
+  const hidden = await panelShown(false);
+  await page.keyboard.press('KeyT');
+  const shown = await panelShown(true);
+  if (hidden.flag !== false || hidden.css !== 'hidden' || shown.flag !== true || shown.css !== 'visible') {
+    errors.push(`[check] La tecla T no alterna el panel (tras 1 T: ${JSON.stringify(hidden)}, tras 2: ${JSON.stringify(shown)})`);
+  } else {
+    logs.push('[check] control de misión · T lo oculta y lo vuelve a mostrar');
+  }
+
   // Conduce un poco (W y luego W+A) para que se vean huellas y la cámara siguiendo
   const roverState = () =>
     page.evaluate(() => {
