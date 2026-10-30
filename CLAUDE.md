@@ -46,6 +46,8 @@ src/
   rover/collisions.js  choque con las rocas grandes: rectángulo del rover contra círculo de cada roca
   rover/tracks.js      huellas: tiras con búfer circular y textura de grousers
   rover/followCamera.js OrbitControls que siguen al rover y se colocan detrás al conducir
+  rover/cameraShake.js temblor al pasar sobre piedras (trauma con controller.bump); solo gira la
+                       cámara después de controls.update (engine.start(onFrame, beforeRender))
   telemetry/telemetry.js  mini TelemetryAPI al estilo Open MCT: cada dato con nombre, unidad y proveedor;
                        request() = historial de la misión, subscribe() = en vivo. Datos {sol, value}
   telemetry/waypointsProvider.js  distancia, altura e inclinación del JSON de paradas de la NASA (M20_waypoints)

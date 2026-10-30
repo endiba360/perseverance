@@ -23,7 +23,7 @@ Simulación 3D del rover Perseverance de la NASA en el cráter Jezero, construid
 | 🛰️ **Modelo oficial** | El GLB de [NASA-3D-Resources](https://github.com/nasa/NASA-3D-Resources) a tamaño real: 2.70 m de ancho, 3.11 m de largo y 2.23 m de alto, con el mástil desplegado y el brazo guardado, como cuando conduce. |
 | 🎮 **Conducción** | Avanza, retrocede y gira sobre su eje. Se apoya en sus 6 ruedas y se inclina siguiendo las dunas. |
 | 🛞 **Ruedas** | Las 6 ruedas ruedan según la velocidad y las 4 de las esquinas se orientan como en el rover real: en curva al avanzar y en diamante al girar en el sitio. |
-| 🪨 **Rocas** | Las piedras de más de 40 cm (lo que evita el rover real) lo detienen, y si llega en diagonal se desliza por el borde. Las más bajas las trepa: la rueda que pisa una sube y el rover se ladea. |
+| 🪨 **Rocas** | Las piedras de más de 40 cm (lo que evita el rover real) lo detienen, y si llega en diagonal se desliza por el borde. Las más bajas las trepa: la rueda que pisa una sube, el rover se ladea y la cámara tiembla con la sacudida. |
 | 👣 **Huellas** | Dos bandas sobre la arena con el relieve en chevrón de los grousers, marcado por la luz rasante del sol. |
 | 🎥 **Cámara de seguimiento** | Se coloca detrás del rover al conducir y puedes girarla alrededor con el mouse. |
 | 📷 **Cámaras a bordo** | Al cargar, la consola lista las 8 cámaras del modelo: Mastcam-Z, SuperCam, Navcams, Hazcams, WATSON y las de descenso. |
@@ -106,7 +106,8 @@ src/
 │   ├── wheels.js      ruedas separadas: rodadura y dirección
 │   ├── collisions.js  choque con las rocas grandes
 │   ├── tracks.js      huellas de las ruedas
-│   └── followCamera.js cámara que sigue al rover
+│   ├── followCamera.js cámara que sigue al rover
+│   └── cameraShake.js temblor de cámara sobre las piedras
 ├── telemetry/
 │   ├── telemetry.js   mini API de telemetría al estilo Open MCT
 │   ├── waypointsProvider.js  distancia, altura e inclinación (datos de la NASA)

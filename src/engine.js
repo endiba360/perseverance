@@ -33,8 +33,9 @@ export function createEngine() {
     composer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  // onFrame(delta, time) se llama cada frame antes de dibujar
-  const start = (onFrame) => {
+  // onFrame(delta, time) se llama cada frame antes de dibujar; beforeRender(delta,
+  // time), opcional, después de los controles (para efectos de cámara como el temblor)
+  const start = (onFrame, beforeRender) => {
     const timer = new THREE.Timer();
     timer.connect(document);
     renderer.setAnimationLoop((timestamp) => {
@@ -43,6 +44,7 @@ export function createEngine() {
       const time = timer.getElapsed();
       onFrame(delta, time);
       controls.update();
+      beforeRender?.(delta, time);
       composer.userData.update(time);
       composer.render();
     });

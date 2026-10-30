@@ -5,6 +5,7 @@ import { loadRover } from './rover/rover.js';
 import { RoverController } from './rover/controller.js';
 import { Tracks } from './rover/tracks.js';
 import { FollowCamera } from './rover/followCamera.js';
+import { CameraShake } from './rover/cameraShake.js';
 import { TelemetryAPI } from './telemetry/telemetry.js';
 import { createWaypointsProvider } from './telemetry/waypointsProvider.js';
 import { createLightTimeProvider } from './telemetry/lightTimeProvider.js';
@@ -18,6 +19,7 @@ const { scene, camera, controls, start } = createEngine();
 const world = createWorld(scene);
 const tracks = new Tracks();
 scene.add(tracks.group);
+const shake = new CameraShake(camera);
 
 // Control de misión: datos reales de Percy, cada uno servido por su proveedor
 const telemetry = new TelemetryAPI();
@@ -44,12 +46,16 @@ loadRover()
   })
   .catch((err) => console.error('No se pudo cargar el modelo del rover:', err));
 
-start((delta, time) => {
-  if (driver) {
-    driver.update(delta);
-    tracks.update(driver);
-    follow.update(delta);
-    markFrameRendered();
-  }
-  world.update(delta, time, camera, controls.target);
-});
+start(
+  (delta, time) => {
+    if (driver) {
+      driver.update(delta);
+      tracks.update(driver);
+      follow.update(delta);
+      markFrameRendered();
+    }
+    world.update(delta, time, camera, controls.target);
+  },
+  // La cámara tiembla cuando las ruedas pasan sobre piedras
+  (delta, time) => shake.update(delta, time, driver ? driver.bump : 0),
+);

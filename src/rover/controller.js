@@ -22,6 +22,7 @@ export class RoverController {
     this.heading = heading; // rotación en Y; 0 = mira hacia +Z
     this.speed = 0;
     this.turnSpeed = 0;
+    this.bump = 0; // metros que subieron o bajaron las ruedas sobre piedras en el último paso
     this.keys = new Set();
     this._tilt = new THREE.Quaternion();
     this._yaw = new THREE.Quaternion();
@@ -73,18 +74,30 @@ export class RoverController {
     const f = this.forward;
     const r = new THREE.Vector3(f.z, 0, -f.x); // eje X local del rover
     const p = this.position;
-    const ground = (x, z) => Math.max(getSurfaceHeight(x, z), this.rocks ? this.rocks.heightAt(x, z) : -Infinity);
     // Cada rueda mira su centro y sus bordes delantero y trasero: empieza a subir
     // cuando el neumático toca la piedra, no cuando ya está encima
+    let onRocks = 0; // cuánto van subidas las ruedas sobre piedras, sumando las 6
     const sample = (sf, sr) => {
       const x = p.x + f.x * sf * halfBase + r.x * sr * halfTrack;
       const z = p.z + f.z * sf * halfBase + r.z * sr * halfTrack;
-      return Math.max(ground(x, z), ground(x + f.x * radius, z + f.z * radius), ground(x - f.x * radius, z - f.z * radius));
+      let sand = -Infinity;
+      let rock = -Infinity;
+      for (const d of [0, radius, -radius]) {
+        sand = Math.max(sand, getSurfaceHeight(x + f.x * d, z + f.z * d));
+        if (this.rocks) rock = Math.max(rock, this.rocks.heightAt(x + f.x * d, z + f.z * d));
+      }
+      onRocks += Math.max(rock - sand, 0);
+      return Math.max(sand, rock);
     };
     // [delantera, media, trasera] de cada lado
     const left = [sample(1, 1), sample(0, 1), sample(-1, 1)];
     const right = [sample(1, -1), sample(0, -1), sample(-1, -1)];
     const all = [...left, ...right];
+
+    // Sacudida: cuántos metros subieron o bajaron las ruedas sobre piedras desde
+    // el paso anterior. En la arena es 0; la cámara la usa para temblar (cameraShake.js).
+    this.bump = this._onRocks === undefined ? 0 : Math.abs(onRocks - this._onRocks);
+    this._onRocks = onRocks;
 
     // Plano por mínimos cuadrados y luego se sube lo justo para que ninguna rueda se hunda
     const mean = all.reduce((a, b) => a + b, 0) / 6;

@@ -196,7 +196,7 @@ try {
       for (let t = 0; t < seconds; t += 1 / 30) {
         d.update(1 / 30);
         const q = d.rover.quaternion;
-        samples.push({ x: d.position.x, z: d.position.z, y: d.position.y, upY: 1 - 2 * (q.x * q.x + q.z * q.z) });
+        samples.push({ x: d.position.x, z: d.position.z, y: d.position.y, upY: 1 - 2 * (q.x * q.x + q.z * q.z), bump: d.bump });
       }
       codes.forEach((c) => d.keys.delete(c));
       return samples;
@@ -253,6 +253,13 @@ try {
       `roca pequeña (alto ${small.height.toFixed(2)} m): el rover subió ${(lift * 100).toFixed(1)} cm, se ladeó ${((tilt * 180) / Math.PI).toFixed(1)}° y ${passed ? 'pasó al otro lado' : 'no la cruzó'}`,
     );
     if (lift < 0.03 || !passed) result.errors.push('[check] El rover no trepó la roca pequeña');
+
+    // Sacudida que hace temblar la cámara: debe aparecer sobre la piedra y ser 0 en la arena
+    const total = (samples) => samples.slice(1).reduce((sum, s) => sum + s.bump, 0);
+    result.lines.push(
+      `sacudida para la cámara: ${total(withRocks).toFixed(2)} m sobre la piedra, ${total(without).toFixed(2)} m en la arena`,
+    );
+    if (total(withRocks) < 0.1 || total(without) > 0) result.errors.push('[check] La sacudida de la cámara no responde a la piedra');
 
     d.position.set(saved.x, 0, saved.z);
     d.heading = saved.heading;
