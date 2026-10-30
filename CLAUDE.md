@@ -14,7 +14,7 @@ Objetivos de la simulación:
 
 ## Estado actual
 
-Paisaje marciano cinematográfico (dunas, rocas, cielo caramelo con polvo, sol de tarde, Fobos y Deimos) con el modelo oficial de Perseverance de la NASA a tamaño real: se conduce con WASD/flechas, deja huellas y la cámara lo sigue. Un panel de control de misión (tecla T) muestra 4 datos reales de Percy con el patrón de telemetría de Open MCT. Pendiente: vistas desde las cámaras del rover.
+Paisaje marciano cinematográfico (dunas, rocas, cielo caramelo con polvo, sol de tarde, Fobos y Deimos) con el modelo oficial de Perseverance de la NASA a tamaño real: se conduce con WASD/flechas, deja huellas y la cámara lo sigue. Un panel de control de misión (tecla T) muestra 4 datos reales de Percy con el patrón de telemetría de Open MCT. Pendiente: colisiones con las rocas (hoy el rover las atraviesa) y vistas desde las cámaras del rover.
 
 ## Stack
 
@@ -50,7 +50,8 @@ src/
   telemetry/waypointsProvider.js  distancia, altura e inclinación del JSON de paradas de la NASA (M20_waypoints)
   telemetry/lightTimeProvider.js  tiempo de luz Tierra-Marte en vivo
   telemetry/orbits.js  posiciones de la Tierra y Marte (elementos keplerianos aproximados de JPL)
-  hud/missionControl.js  panel de control de misión (tecla T): valor, gráfica de la misión y frase por dato
+  hud/missionControl.js  panel de control de misión (tecla T): valor, gráfica de la misión y frase por dato;
+                       solo habla con la TelemetryAPI, nunca con las fuentes (estilos en missionControl.css)
   world/sky.js         shader del cielo (degradado, polvo, halo azulado, disco solar HDR)
   world/lighting.js    sol direccional con sombras (sigue al objetivo de la cámara) + hemisférica
   world/rocks.js       rocas procedurales con InstancedMesh
@@ -90,7 +91,7 @@ scripts/copy-draco.mjs copia el decodificador Draco de three a public/draco/
 
 - Idioma: la comunicación con el usuario es en español. Comentarios y documentación en español; nombres de variables, funciones y archivos en inglés.
 - Unidades del mundo 3D en metros, para usar las dimensiones reales del rover (aprox. 3 m de largo, 2.7 m de ancho, 2.2 m de alto, ~1025 kg) y la gravedad de Marte (3.721 m/s²).
-- Organiza el código por responsabilidad: `world/` (paisaje), `rover/` (rover), `post/` (efectos), `engine.js` (render). `main.js` solo conecta piezas; la lógica nueva va en su propio módulo.
+- Organiza el código por responsabilidad: `world/` (paisaje), `rover/` (rover), `telemetry/` (datos y sus proveedores), `hud/` (interfaz sobre la escena), `post/` (efectos), `engine.js` (render). Un dato de telemetría nuevo se agrega como proveedor, sin tocar el panel. `main.js` solo conecta piezas; la lógica nueva va en su propio módulo.
 - El modelo de la NASA trae varias piezas fusionadas en mallas únicas. Si una parte necesita moverse por separado, sepárala en código dentro de `rover/` como un módulo propio (como `wheels.js`).
 - Archivos binarios grandes: el GLB (~5 MB) va directo en git. Si se agregan más modelos o texturas pesadas, usa Git LFS.
 - Commits: no agregues líneas de autoría ni coautoría (`Co-Authored-By`, "Generated with Claude Code", etc.) a los mensajes de commit ni a las descripciones de PR. Mensajes en español, con prefijo tipo `feat:`, `fix:`, `docs:`, `chore:`.

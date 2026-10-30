@@ -27,6 +27,23 @@ Simulación 3D del rover Perseverance de la NASA en el cráter Jezero, construid
 | 🎥 **Cámara de seguimiento** | Se coloca detrás del rover al conducir y puedes girarla alrededor con el mouse. |
 | 📷 **Cámaras a bordo** | Al cargar, la consola lista las 8 cámaras del modelo: Mastcam-Z, SuperCam, Navcams, Hazcams, WATSON y las de descenso. |
 
+## 📡 Control de misión
+
+![La simulación con el control de misión abierto al pie de la pantalla](docs/interface.png)
+
+Una barra al pie de la pantalla (se muestra u oculta con la tecla `T`) con **datos reales** del Perseverance de verdad. Cada tarjeta trae el valor actual, una gráfica de toda la misión por soles (días marcianos) y una frase que explica qué significa.
+
+![Detalle del panel: distancia recorrida, altura del terreno, inclinación y tiempo de luz Tierra-Marte, cada uno con su gráfica de la misión](docs/mission-control.png)
+
+| Dato | Fuente |
+|---|---|
+| 🛣️ **Distancia recorrida** (km) | Paradas de la misión que publica la NASA ([M20_waypoints.json](https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_waypoints.json)), leídas en vivo |
+| ⛰️ **Altura del terreno** (m sobre el nivel de referencia de Marte) | Mismo archivo de la NASA |
+| 📐 **Inclinación** del rover al terminar cada manejo (°) | Mismo archivo de la NASA |
+| 📶 **Tiempo de luz Tierra-Marte** (min) | Calculado en vivo con las órbitas de la Tierra y Marte (elementos keplerianos de JPL) |
+
+Está organizado con el patrón de telemetría de [Open MCT](https://github.com/nasa/openmct), el software de control de misión de la NASA. Cada dato declara su nombre, su unidad y quién lo provee. El panel pide el historial con `request()` y recibe los valores en vivo con `subscribe()`, siempre a través de la API y sin tocar las fuentes directamente. Para agregar un dato nuevo basta con escribir un proveedor.
+
 ## ✨ El paisaje
 
 ![Atardecer en el cráter Jezero: dunas, rocas, sol bajo y las lunas Fobos y Deimos](docs/preview.png)
@@ -40,7 +57,7 @@ Simulación 3D del rover Perseverance de la NASA en el cráter Jezero, construid
 | 🌑 **Fobos y Deimos** | Las dos lunas de Marte, irregulares y con cráteres, flotando en el cielo polvoriento. |
 | 🌫️ **Atmósfera** | Partículas de polvo arrastradas por el viento, niebla de distancia y posprocesado cinematográfico (bloom, viñeta y grano de película). |
 
-El paisaje es **procedural**: no usa texturas ni modelos descargados, solo código. El único recurso externo es el modelo del rover.
+El paisaje es **procedural**: no usa texturas ni modelos descargados, solo código. Lo único externo es el modelo del rover y los datos de telemetría de la NASA.
 
 ## 🚀 Empezar
 
@@ -73,7 +90,7 @@ Abre http://localhost:5173, haz clic en la escena y conduce:
 npm run check
 ```
 
-Abre la escena en tu Chrome instalado en modo invisible (con [Playwright](https://playwright.dev/) y sin descargar navegadores), simula un recorrido del rover, guarda una captura en `screenshots/check.png` y lista los mensajes y errores de consola. Termina con código 1 si encuentra algún error.
+Abre la escena en tu Chrome instalado en modo invisible (con [Playwright](https://playwright.dev/) y sin descargar navegadores), simula un recorrido del rover, comprueba que el control de misión cargue sus 4 datos y que la tecla `T` lo oculte, guarda una captura en `screenshots/check.png` y lista los mensajes y errores de consola. Termina con código 1 si encuentra algún error.
 
 ## 🗂️ Estructura
 
@@ -88,6 +105,13 @@ src/
 │   ├── wheels.js      ruedas separadas: rodadura y dirección
 │   ├── tracks.js      huellas de las ruedas
 │   └── followCamera.js cámara que sigue al rover
+├── telemetry/
+│   ├── telemetry.js   mini API de telemetría al estilo Open MCT
+│   ├── waypointsProvider.js  distancia, altura e inclinación (datos de la NASA)
+│   ├── lightTimeProvider.js  tiempo de luz Tierra-Marte en vivo
+│   └── orbits.js      posiciones de la Tierra y Marte
+├── hud/
+│   └── missionControl.js  panel de control de misión (tecla T)
 ├── world/
 │   ├── world.js       arma el paisaje completo
 │   ├── terrain.js     dunas y relieve (altura exacta para apoyar objetos)
@@ -112,6 +136,7 @@ scripts/
 - [x] Modelo oficial del rover a tamaño real
 - [x] Conducción con teclado, huellas y cámara de seguimiento
 - [x] Ruedas que giran y dirección de las 4 esquinas
+- [x] Control de misión con telemetría real de Perseverance
 - [ ] Colisiones con las rocas
 - [ ] Vistas desde las cámaras del rover (Mastcam-Z, Navcams, Hazcams…)
 
@@ -119,4 +144,4 @@ scripts/
 
 Código bajo licencia [MIT](LICENSE) · Proyecto de aprendizaje de [Platzi](https://platzi.com). No está afiliado a la NASA.
 
-Modelo 3D de Perseverance: [NASA-3D-Resources](https://github.com/nasa/NASA-3D-Resources), cortesía de NASA/JPL-Caltech.
+Modelo 3D de Perseverance: [NASA-3D-Resources](https://github.com/nasa/NASA-3D-Resources), cortesía de NASA/JPL-Caltech. Datos de las paradas del rover: mapa de la misión Mars 2020 (MMGIS) de NASA/JPL-Caltech.
