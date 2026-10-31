@@ -47,6 +47,13 @@ export function installPhotoHooks(viewer) {
   };
 }
 
+// window.__view: las vistas desde las cámaras del rover. select(key | null),
+// active, look(pan, tilt) en radianes y zoomTo(fov) en grados; el check también
+// las recorre con la tecla V real.
+export function installViewHooks(views) {
+  window.__view = views;
+}
+
 // window.__sceneReady: se activa tras unos frames con el rover en escena.
 // npm run check lo espera antes de conducir y capturar.
 let framesRendered = 0;

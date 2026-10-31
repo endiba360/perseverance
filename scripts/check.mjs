@@ -8,6 +8,8 @@ import { chromium } from 'playwright-core';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const screenshotPath = fileURLToPath(new URL('../screenshots/check.png', import.meta.url));
 const photoPath = fileURLToPath(new URL('../screenshots/photo.png', import.meta.url));
+const navcamPath = fileURLToPath(new URL('../screenshots/navcam.png', import.meta.url));
+const hazcamPath = fileURLToPath(new URL('../screenshots/hazcam.png', import.meta.url));
 
 const server = await createServer({ root, logLevel: 'error', server: { port: 5199, strictPort: false } });
 await server.listen();
@@ -386,6 +388,63 @@ try {
     else logs.push('[check] foto ampliada · Esc vuelve al juego');
   } catch (err) {
     errors.push(`[check] La foto no se pudo ampliar: ${err.message}`);
+  }
+
+  // Vistas desde las cámaras del rover: la tecla V real entra a la Navcam (y oculta
+  // los puntos de fotos), se conduce un poco con ella y se captura; luego la Hazcam
+  // delantera, y Shift+V varias veces vuelve a la orbital
+  const viewState = () =>
+    page.evaluate(() => ({
+      key: window.__view.active?.key ?? null,
+      spotsHidden: document.querySelector('.cam-spots').hidden,
+      frameHidden: document.querySelector('.cam-view').hidden,
+    }));
+  try {
+    await page.keyboard.press('KeyV');
+    const navcam = await viewState();
+    if (navcam.key !== 'NavCams' || !navcam.spotsHidden || navcam.frameHidden) {
+      errors.push(`[check] La tecla V no entra a la Navcam (${JSON.stringify(navcam)})`);
+    } else {
+      logs.push('[check] vistas · V entra a la Navcam y oculta los puntos de fotos');
+    }
+    const looked = await page.evaluate(() => {
+      window.__drive(2, ['KeyW']);
+      window.__view.look(0.3, -0.35); // mira a un lado y hacia abajo, a la cubierta
+      const v = window.__view.active;
+      const cam = window.__view.camera;
+      const ground = window.__rover.position;
+      return { pan: v.pan, tilt: v.tilt, height: cam.position.y - ground.y };
+    });
+    logs.push(
+      `[check] vistas · Navcam a ${looked.height.toFixed(2)} m sobre el suelo, pan ${looked.pan.toFixed(2)} rad, tilt ${looked.tilt.toFixed(2)} rad`,
+    );
+    if (looked.height < 1.8 || looked.height > 2.4) errors.push('[check] La Navcam no está a la altura del mástil');
+    await page.waitForTimeout(4000);
+    await page.screenshot({ path: navcamPath });
+    console.log(`Captura desde la Navcam: ${navcamPath}`);
+
+    const zoom = await page.evaluate(() => {
+      window.__view.select('Mastcam_Z_cams');
+      window.__view.zoomTo(1); // fuera de rango: se queda en el máximo zoom
+      return { fov: window.__view.active.fov, mm: window.__view.focalLength() };
+    });
+    logs.push(`[check] vistas · Mastcam-Z al máximo zoom: ${zoom.fov.toFixed(1)}°, ${zoom.mm.toFixed(0)} mm`);
+    if (Math.abs(zoom.mm - 110) > 2) errors.push('[check] El zoom de Mastcam-Z no llega a 110 mm');
+
+    await page.evaluate(() => window.__view.select('hazcams_front'));
+    await page.waitForTimeout(4000);
+    await page.screenshot({ path: hazcamPath });
+    console.log(`Captura desde la Hazcam delantera: ${hazcamPath}`);
+
+    for (let i = 0; i < 3; i++) await page.keyboard.press('Shift+KeyV');
+    const orbital = await viewState();
+    if (orbital.key !== null || orbital.spotsHidden || !orbital.frameHidden) {
+      errors.push(`[check] Shift+V no vuelve a la vista orbital (${JSON.stringify(orbital)})`);
+    } else {
+      logs.push('[check] vistas · Shift+V vuelve a la orbital con los puntos de fotos');
+    }
+  } catch (err) {
+    errors.push(`[check] Las vistas del rover fallaron: ${err.message}`);
   }
 } catch (err) {
   errors.push(`[check] ${err.message}`);

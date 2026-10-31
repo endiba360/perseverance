@@ -50,5 +50,14 @@ export function createEngine() {
     });
   };
 
-  return { renderer, scene, camera, controls, start };
+  // Cambia la cámara con la que se dibuja: null vuelve a la orbital. Los controles
+  // de órbita solo responden al mouse en la orbital, pero siguen actualizándose
+  // (su objetivo guía al sol y a las sombras).
+  const setView = (viewCamera, { fisheye = 0 } = {}) => {
+    composer.userData.setCamera(viewCamera ?? camera);
+    composer.userData.setFisheye(fisheye);
+    controls.enabled = !viewCamera;
+  };
+
+  return { renderer, scene, camera, controls, start, setView };
 }

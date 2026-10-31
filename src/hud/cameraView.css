@@ -1,0 +1,141 @@
+/* Marco de las vistas desde las cámaras del rover. Colores de hud.css. */
+.cam-view {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  color: var(--mc-text);
+  font-family: var(--mc-mono);
+}
+.cam-view[hidden] {
+  display: none;
+}
+
+/* Esquinas de encuadre */
+.cam-view__corner {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  border: 0 solid rgba(255, 210, 175, 0.55);
+}
+.cam-view__corner:nth-of-type(1) { top: 24px; left: 24px; border-top-width: 2px; border-left-width: 2px; }
+.cam-view__corner:nth-of-type(2) { top: 24px; right: 24px; border-top-width: 2px; border-right-width: 2px; }
+.cam-view__corner:nth-of-type(3) { bottom: 24px; left: 24px; border-bottom-width: 2px; border-left-width: 2px; }
+.cam-view__corner:nth-of-type(4) { bottom: 24px; right: 24px; border-bottom-width: 2px; border-right-width: 2px; }
+
+/* Retícula al centro: cruz abierta */
+.cam-view__reticle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+  background:
+    linear-gradient(rgba(255, 210, 175, 0.6), rgba(255, 210, 175, 0.6)) center top / 1px 14px no-repeat,
+    linear-gradient(rgba(255, 210, 175, 0.6), rgba(255, 210, 175, 0.6)) center bottom / 1px 14px no-repeat,
+    linear-gradient(rgba(255, 210, 175, 0.6), rgba(255, 210, 175, 0.6)) left center / 14px 1px no-repeat,
+    linear-gradient(rgba(255, 210, 175, 0.6), rgba(255, 210, 175, 0.6)) right center / 14px 1px no-repeat;
+}
+
+/* Instrumento y datos, arriba al centro */
+.cam-view__head,
+.cam-view__readout,
+.cam-view__hint {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  max-width: calc(100vw - 32px);
+  padding: 6px 12px;
+  background: var(--mc-bg);
+  border: 1px solid var(--mc-line);
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cam-view__head {
+  top: 22px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.cam-view__head strong {
+  font-family: var(--mc-display);
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mc-accent);
+}
+.cam-view__head span {
+  font-size: 11px;
+  color: var(--mc-muted);
+}
+.cam-view__readout {
+  top: 64px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mc-text);
+}
+.cam-view__hint {
+  top: 100px;
+  padding: 4px 10px;
+  font: 11px/1.4 system-ui, 'Segoe UI', sans-serif;
+  color: var(--mc-muted);
+}
+
+.cam-view kbd,
+.cam-view__switch kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 1px 5px;
+  border: 1px solid var(--mc-line);
+  border-radius: 4px;
+  background: rgba(255, 210, 175, 0.1);
+  font: 11px/1.4 var(--mc-mono);
+  color: var(--mc-accent);
+  text-align: center;
+}
+
+/* Botón bajo el switch del temblor: entra y recorre las vistas */
+.cam-view__switch {
+  position: fixed;
+  top: 62px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  background: var(--mc-bg);
+  border: 1px solid var(--mc-line);
+  border-radius: 10px;
+  backdrop-filter: blur(10px) saturate(1.1);
+  -webkit-backdrop-filter: blur(10px) saturate(1.1);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  color: var(--mc-text);
+  font: 12px/1 var(--mc-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.cam-view__switch:hover {
+  border-color: rgba(255, 178, 107, 0.45);
+}
+.cam-view__switch:focus-visible {
+  outline: 2px solid var(--mc-accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 860px) {
+  .cam-view__switch {
+    top: 56px;
+    right: 12px;
+  }
+  .cam-view__corner {
+    width: 22px;
+    height: 22px;
+  }
+}

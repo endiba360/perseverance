@@ -6,7 +6,7 @@ import { loadPhotos, daysAgo } from '../photos/rawImages.js';
 const REVEAL_MS = 2200; // la foto aparece de arriba abajo, como si bajara de Marte
 const DWELL_MS = 7000; // tiempo que la tarjeta se queda quieta tras revelarse
 // Teclas que el visor ampliado no deja pasar al rover ni al control de misión
-const GAME_KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyT', 'Space'];
+const GAME_KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyT', 'KeyV', 'Space'];
 
 // Espera a que la imagen termine de bajar. No usa img.decode(): en las pruebas con
 // Chrome a veces se quedaba sin resolver aunque la imagen ya estuviera cargada.

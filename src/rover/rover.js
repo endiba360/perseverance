@@ -81,7 +81,7 @@ export async function loadRover() {
     `Perseverance cargado: ${size.x.toFixed(2)} m de ancho × ${size.z.toFixed(2)} m de largo × ${size.y.toFixed(2)} m de alto`,
   );
 
-  // Piezas que son cámaras: las usaremos más adelante para las vistas del rover
+  // Piezas que son cámaras: se listan en la consola (las vistas y las fotos las buscan por nombre)
   const cameras = [];
   model.traverse((obj) => {
     if (CAMERA_PATTERN.test(obj.name) && !NOT_A_CAMERA.test(obj.name)) cameras.push(obj);

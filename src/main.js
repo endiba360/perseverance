@@ -5,6 +5,7 @@ import { loadRover } from './rover/rover.js';
 import { RoverController } from './rover/controller.js';
 import { Tracks } from './rover/tracks.js';
 import { FollowCamera } from './rover/followCamera.js';
+import { RoverCameras } from './rover/roverCameras.js';
 import { CameraShake } from './rover/cameraShake.js';
 import { TelemetryAPI } from './telemetry/telemetry.js';
 import { createWaypointsProvider } from './telemetry/waypointsProvider.js';
@@ -13,13 +14,14 @@ import { MissionControl } from './hud/missionControl.js';
 import { ShakeToggle } from './hud/shakeToggle.js';
 import { CameraSpots } from './hud/cameraSpots.js';
 import { PhotoViewer } from './hud/photoViewer.js';
+import { CameraView } from './hud/cameraView.js';
 import { PHOTO_CAMERAS } from './photos/picks.js';
-import { installDebugHooks, installMissionHooks, installShakeHooks, installPhotoHooks, markFrameRendered } from './debug.js';
+import { installDebugHooks, installMissionHooks, installShakeHooks, installPhotoHooks, installViewHooks, markFrameRendered } from './debug.js';
 
 // El rover arranca en el claro sin rocas, mirando hacia el sol
 const ROVER_START = { x: 0, z: 10, heading: Math.PI };
 
-const { scene, camera, controls, start } = createEngine();
+const { renderer, scene, camera, controls, start, setView } = createEngine();
 const world = createWorld(scene);
 const tracks = new Tracks();
 scene.add(tracks.group);
@@ -46,6 +48,8 @@ controls.update();
 // El rover se carga en segundo plano; el paisaje se ve mientras tanto
 let driver = null;
 let follow = null;
+let views = null; // vistas desde las cámaras del rover (tecla V)
+let frame = null;
 loadRover()
   .then(({ rover, wheels, wheelRig }) => {
     scene.add(rover);
@@ -54,6 +58,13 @@ loadRover()
     follow = new FollowCamera(camera, controls, driver);
     spots = new CameraSpots(camera, rover, PHOTO_CAMERAS, (key) => photos.shoot(key));
     installPhotoHooks(photos);
+    views = new RoverCameras(rover, renderer.domElement);
+    frame = new CameraView(views, driver);
+    views.onChange((view) => {
+      setView(view && views.camera, { fisheye: view?.fisheye ?? 0 });
+      spots.root.hidden = !!view; // las fotos se toman desde la vista orbital
+    });
+    installViewHooks(views);
     installDebugHooks({ driver, tracks, follow });
   })
   .catch((err) => console.error('No se pudo cargar el modelo del rover:', err));
@@ -64,13 +75,20 @@ start(
       driver.update(delta);
       tracks.update(driver);
       follow.update(delta);
+      views.update();
       markFrameRendered();
     }
-    world.update(delta, time, camera, controls.target);
+    // El cielo, las lunas y el polvo se centran en la cámara con la que se dibuja
+    world.update(delta, time, views?.active ? views.camera : camera, controls.target);
   },
-  // La cámara tiembla cuando las ruedas pasan sobre piedras; los puntos de las
-  // cámaras se colocan después, ya con la cámara final
+  // En la orbital la cámara tiembla cuando las ruedas pasan sobre piedras y los
+  // puntos de las cámaras se colocan después, ya con la cámara final. En las del
+  // rover el temblor ya lo da la inclinación del propio rover.
   (delta, time) => {
+    if (views?.active) {
+      frame.update();
+      return;
+    }
     shake.update(delta, time, driver ? driver.bump : 0);
     spots?.update();
   },
