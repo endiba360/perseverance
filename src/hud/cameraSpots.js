@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { partCenter } from '../rover/parts.js';
 import './hud.css';
 import './cameraSpots.css';
 
@@ -6,26 +7,6 @@ import './cameraSpots.css';
 // centro de las dos piezas cae casi en el mismo punto. Cada punto se pone sobre
 // una cámara de su par, uno en el lado +X y otro en el −X, para que no se encimen.
 const PAIR_SIDE = { Mastcam_Z_cams: 1, NavCams: -1 };
-
-// Centro de la caja de la pieza en coordenadas del rover; con side, solo la mitad
-// de ese lado
-function partCenter(rover, part, side) {
-  const toRover = new THREE.Matrix4();
-  const inverse = rover.matrixWorld.clone().invert();
-  const points = [];
-  part.traverse((mesh) => {
-    if (!mesh.isMesh) return;
-    toRover.multiplyMatrices(inverse, mesh.matrixWorld);
-    const pos = mesh.geometry.attributes.position;
-    for (let i = 0; i < pos.count; i++) points.push(new THREE.Vector3().fromBufferAttribute(pos, i).applyMatrix4(toRover));
-  });
-  const box = new THREE.Box3().setFromPoints(points);
-  if (side) {
-    const mid = box.getCenter(new THREE.Vector3()).x;
-    box.setFromPoints(points.filter((p) => (p.x - mid) * side > 0));
-  }
-  return box.getCenter(new THREE.Vector3());
-}
 
 // Puntos que brillan sobre las cámaras del modelo. Son botones HTML que se
 // proyectan cada frame sobre la pieza 3D; al pasar el mouse dicen su nombre y
