@@ -21,7 +21,8 @@ const world = createWorld(scene);
 const tracks = new Tracks();
 scene.add(tracks.group);
 const shake = new CameraShake(camera);
-installShakeHooks(shake, new ShakeToggle(shake));
+new ShakeToggle(shake);
+installShakeHooks(shake);
 
 // Control de misión: datos reales de Percy, cada uno servido por su proveedor
 const telemetry = new TelemetryAPI();

@@ -31,10 +31,10 @@ export function installMissionHooks(missionControl) {
   };
 }
 
-// window.__shake: el temblor de cámara (enabled, trauma, update) y su switch del HUD.
-export function installShakeHooks(shake, toggle) {
+// window.__shake: el temblor de cámara (enabled, trauma, update). El check prueba
+// su switch con clics reales sobre el HUD.
+export function installShakeHooks(shake) {
   window.__shake = shake;
-  window.__shakeToggle = toggle;
 }
 
 // window.__sceneReady: se activa tras unos frames con el rover en escena.
