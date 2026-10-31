@@ -27,6 +27,7 @@ Simulación 3D del rover Perseverance de la NASA en el cráter Jezero, construid
 | 👣 **Huellas** | Dos bandas sobre la arena con el relieve en chevrón de los grousers, marcado por la luz rasante del sol. |
 | 🎥 **Cámara de seguimiento** | Se coloca detrás del rover al conducir y puedes girarla alrededor con el mouse. Tiembla cuando las ruedas pasan sobre piedras, más fuerte cuanto más alta es la piedra; si prefieres una cámara quieta, apágalo con el switch **Temblor de cámara** de arriba a la derecha. |
 | 📷 **Cámaras a bordo** | Cuatro cámaras brillan sobre el modelo y toman fotos reales de Marte (ver abajo). Al cargar, la consola lista las 8 cámaras del modelo. |
+| 👁️ **Vistas del rover** | Con `V` ves Marte desde las cámaras de Percy mientras conduces: Navcam y Mastcam-Z en el mástil (arrastra para girar la cabeza; la rueda hace zoom de 26 a 110 mm en Mastcam-Z) y las Hazcams delantera y trasera, con su ojo de pez. |
 
 ## 📸 Fotos reales de Marte
 
@@ -88,6 +89,8 @@ Abre http://localhost:5173, haz clic en la escena y conduce:
 | `A` / `←` | Girar a la izquierda |
 | `D` / `→` | Girar a la derecha |
 | `T` | Mostrar u ocultar el control de misión |
+| `V` / `Shift`+`V` | Siguiente / anterior vista: orbital, Navcam, Mastcam-Z, Hazcams |
+| Arrastrar · rueda (en el mástil) | Girar la cabeza del mástil · zoom de Mastcam-Z |
 | Clic en un punto brillante | Tomar una foto real con esa cámara |
 | Clic en la foto · `←` `→` · `Esc` | Ampliarla · ver más de esa cámara · volver al juego |
 | Switch "Temblor de cámara" | Activar o desactivar el temblor al pasar sobre piedras |
@@ -110,8 +113,9 @@ Abre la escena en tu Chrome instalado en modo invisible (con [Playwright](https:
 - **Rocas:** que una grande detenga al rover sin traslaparse y que trepe y cruce una pequeña.
 - **Temblor de cámara:** que la sacudida aparezca sobre la piedra y no en la arena, y que el switch venga activado, se apague y se vuelva a encender con clics reales.
 - **Fotos:** que cada una de las 4 cámaras abra una foto real con un clic, que la foto se amplíe, que las flechas la recorran sin mover al rover y que `Esc` la cierre.
+- **Vistas del rover:** que `V` entre a la Navcam a la altura del mástil, que Mastcam-Z llegue a 110 mm y que `Shift`+`V` vuelva a la orbital con los puntos de fotos.
 
-Guarda dos capturas, `screenshots/check.png` (la escena) y `screenshots/photo.png` (una foto ampliada), y lista los mensajes y errores de consola. Termina con código 1 si encuentra algún error.
+Guarda cuatro capturas, `screenshots/check.png` (la escena), `screenshots/photo.png` (una foto ampliada), `screenshots/navcam.png` y `screenshots/hazcam.png` (vistas desde el rover), y lista los mensajes y errores de consola. Termina con código 1 si encuentra algún error.
 
 ## 🗂️ Estructura
 
@@ -127,6 +131,8 @@ src/
 │   ├── collisions.js  choque con las rocas grandes
 │   ├── tracks.js      huellas de las ruedas
 │   ├── followCamera.js cámara que sigue al rover
+│   ├── roverCameras.js vistas desde las cámaras del rover (tecla V)
+│   ├── parts.js       caja y centro de una pieza del modelo
 │   └── cameraShake.js temblor de cámara sobre las piedras
 ├── telemetry/
 │   ├── telemetry.js   mini API de telemetría al estilo Open MCT
@@ -141,6 +147,7 @@ src/
 │   ├── missionControl.js  panel de control de misión (tecla T)
 │   ├── shakeToggle.js     switch del temblor de cámara
 │   ├── cameraSpots.js     puntos brillantes sobre las cámaras del rover
+│   ├── cameraView.js      marco de las vistas del rover
 │   └── photoViewer.js     obturador, foto que se revela y vista ampliada
 ├── world/
 │   ├── world.js       arma el paisaje completo
@@ -151,7 +158,7 @@ src/
 │   ├── rockField.js   posición y altura de cada roca (para chocar o trepar)
 │   ├── moons.js       Fobos y Deimos
 │   └── dust.js        polvo en suspensión
-├── post/composer.js   bloom, viñeta y grano
+├── post/composer.js   bloom, ojo de pez, viñeta y grano
 └── utils/noise.js     ruido simplex con semilla
 public/
 ├── models/perseverance.glb  modelo oficial de la NASA (comprimido con Draco)
@@ -171,7 +178,7 @@ scripts/
 - [x] Colisiones con las rocas y trepado de piedras pequeñas
 - [x] Temblor de cámara sobre las piedras, con switch para apagarlo
 - [x] Fotos reales de Marte desde las cámaras del rover
-- [ ] Vistas 3D desde las cámaras del rover (Mastcam-Z, Navcams, Hazcams…)
+- [x] Vistas 3D desde las cámaras del rover (Navcam, Mastcam-Z, Hazcams)
 
 ## 📄 Licencia
 

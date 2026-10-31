@@ -14,7 +14,7 @@ Objetivos de la simulación:
 
 ## Estado actual
 
-Paisaje marciano cinematográfico (dunas, rocas, cielo caramelo con polvo, sol de tarde, Fobos y Deimos) con el modelo oficial de Perseverance de la NASA a tamaño real: se conduce con WASD/flechas, deja huellas y la cámara lo sigue. Cuatro cámaras del modelo brillan y, con un clic, muestran fotos crudas reales de Percy. Un panel de control de misión (tecla T) muestra 4 datos reales de Percy con el patrón de telemetría de Open MCT. Las rocas de más de 40 cm lo detienen y las más bajas las trepa; al pasar sobre ellas la cámara tiembla, y un switch del HUD (activado por defecto) permite apagar el temblor. Pendiente: vistas 3D desde las cámaras del rover.
+Paisaje marciano cinematográfico (dunas, rocas, cielo caramelo con polvo, sol de tarde, Fobos y Deimos) con el modelo oficial de Perseverance de la NASA a tamaño real: se conduce con WASD/flechas, deja huellas y la cámara lo sigue. Cuatro cámaras del modelo brillan y, con un clic, muestran fotos crudas reales de Percy. Un panel de control de misión (tecla T) muestra 4 datos reales de Percy con el patrón de telemetría de Open MCT. Las rocas de más de 40 cm lo detienen y las más bajas las trepa; al pasar sobre ellas la cámara tiembla, y un switch del HUD (activado por defecto) permite apagar el temblor. La tecla V pasa a ver desde las cámaras del rover a pantalla completa (Navcam, Mastcam-Z con zoom, Hazcams con ojo de pez).
 
 ## Stack
 
@@ -27,7 +27,7 @@ Paisaje marciano cinematográfico (dunas, rocas, cielo caramelo con polvo, sol d
 - `npm install`: instala dependencias y, en `postinstall`, copia el decodificador Draco a `public/draco/` (no está en git).
 - `npm run dev`: servidor de desarrollo en http://localhost:5173 (con HMR).
 - `npm run build` / `npm run preview`: build de producción en `dist/` y su vista previa.
-- `npm run check`: levanta Vite en otro puerto, abre la página en Chrome headless (WebGL por SwiftShader), guarda `screenshots/check.png` y `screenshots/photo.png` (foto de Mastcam-Z ampliada) y lista errores/avisos de consola; termina con código 1 si hay errores. Córrelo tras cada cambio visual grande y revisa la captura.
+- `npm run check`: levanta Vite en otro puerto, abre la página en Chrome headless (WebGL por SwiftShader), guarda `screenshots/check.png`, `screenshots/photo.png` (foto de Mastcam-Z ampliada), `screenshots/navcam.png` y `screenshots/hazcam.png` (vistas desde el rover) y lista errores/avisos de consola; termina con código 1 si hay errores. Córrelo tras cada cambio visual grande y revisa la captura.
 
 ## Estructura
 
@@ -36,7 +36,8 @@ index.html
 src/
   main.js              punto de entrada: arma motor + mundo + rover y define qué se actualiza cada frame
   engine.js            renderer, escena, cámara, OrbitControls, posprocesado, resize y bucle de animación;
-                       start(onFrame, beforeRender): beforeRender corre tras controls.update, antes de dibujar
+                       start(onFrame, beforeRender): beforeRender corre tras controls.update, antes de dibujar;
+                       setView(cámara, { fisheye }): dibuja con otra cámara (null = orbital)
   debug.js             ganchos en window para la consola y npm run check (no son parte de la simulación)
   world/world.js       arma el paisaje completo y lo actualiza cada frame; devuelve también el RockField
   world/terrain.js     dunas + relieve; getHeight(x, z) = función exacta, getSurfaceHeight(x, z) = altura
@@ -54,6 +55,8 @@ src/
   rover/tracks.js      huellas: tiras con búfer circular y textura de grousers
   rover/followCamera.js OrbitControls que siguen al rover y se colocan detrás al conducir
   rover/cameraShake.js temblor de cámara al pasar sobre piedras (ver "Física con las rocas")
+  rover/parts.js       partBox / partCenter: caja y centro de una pieza del GLB en coordenadas del rover
+  rover/roverCameras.js vistas desde las cámaras del rover (tecla V, ver "Cámaras del rover")
   telemetry/telemetry.js  mini TelemetryAPI al estilo Open MCT: cada dato con nombre, unidad y proveedor;
                        request() = historial de la misión, subscribe() = en vivo. Datos {sol, value}
   telemetry/waypointsProvider.js  distancia, altura e inclinación del JSON de paradas de la NASA (M20_waypoints)
@@ -68,9 +71,11 @@ src/
                        (flechas, Esc; en fase de captura se queda con las teclas del juego)
   photos/picks.js      ids de las fotos escogidas a mano por cámara (clave = nombre de la pieza en el GLB)
   photos/rawImages.js  pide cada foto por id a la API de imágenes crudas; daysAgo()
+  hud/cameraView.js    marco de las vistas del rover (encuadre, retícula, apuntado, rumbo, sol) y botón
+                       "Cámaras del rover" bajo el switch del temblor (estilos en cameraView.css)
   hud/shakeToggle.js   switch "Temblor de cámara" (arriba a la derecha, activado por defecto; estilos en
                        shakeToggle.css): cambia CameraShake.enabled y suelta el foco tras cada clic
-  post/composer.js     bloom + OutputPass + viñeta/grano
+  post/composer.js     bloom + OutputPass + ojo de pez (apagado salvo en Hazcams) + viñeta/grano
   utils/noise.js       ruido simplex con semilla, fbm, PRNG
 public/models/perseverance.glb  modelo oficial (NASA-3D-Resources), comprimido con Draco
 public/draco/          decodificador Draco (generado por npm install, ignorado en git; sin CDN)
@@ -98,6 +103,15 @@ scripts/copy-draco.mjs copia el decodificador Draco de three a public/draco/
   - Cada sacudida suma `bump / FULL_BUMP` a un trauma (0–1) que se apaga con `DECAY`. El giro es `MAX_ANGLE · trauma² · ruido`.
   - Solo rota la cámara en `beforeRender`, que corre después de `controls.update`. OrbitControls la reorienta con `lookAt` en cada frame, así que el temblor no se acumula ni interfiere con el mouse.
   - Con `enabled = false` (switch del HUD) no gira y deja el trauma en 0.
+
+## Cámaras del rover
+
+- `rover/roverCameras.js`, recorridas con V (Shift+V hacia atrás): orbital → Navcam → Mastcam-Z → Hazcam delantera → Hazcam trasera.
+- Campos verticales de las cámaras reales en 4:3: Navcam 73°; Mastcam-Z 19.2° (26 mm) a 4.6° (110 mm) con la rueda; Hazcams 90° (la real abarca 102°) más ojo de pez en el posprocesado.
+- Cada vista tiene un pivote hijo del rover en el centro de su pieza, así hereda posición, rumbo e inclinación. La cámara cuelga del pivote un poco por fuera de la pieza; en las del mástil la distancia cubre todo su ancho, así que al girar la cabeza (arrastrar con el mouse: pan libre, tilt −60°…+30°) nunca queda dentro del modelo.
+- Se dibuja con una sola `PerspectiveCamera` fuera de la escena que copia la pose del pivote activo en `update()`, justo después de mover el rover y antes de `world.update`: el cielo, las lunas y el polvo leen `camera.position` como posición de mundo.
+- En las vistas del rover OrbitControls no recibe el mouse pero sigue actualizándose (su objetivo guía al sol). El temblor y los puntos de fotos solo funcionan en la orbital; las fotos se toman desde ahí.
+- La cabeza del mástil del modelo no gira con la vista (es parte de una malla fusionada).
 
 ## Telemetría
 
@@ -129,6 +143,7 @@ Viven en `src/debug.js`; todo gancho nuevo para pruebas va ahí, no en `main.js`
 - `window.__rocks`: el RockField (`rocks`, `near`, `heightAt`).
 - `window.__shake`: el temblor de cámara (`enabled`, `trauma`, `update`). El switch se prueba con clics reales sobre `.hud-switch`.
 - `window.__mission`: lecturas del control de misión (`readings()`) y si está visible.
+- `window.__view`: las vistas del rover (`select(key | null)`, `active`, `look(pan, tilt)`, `zoomTo(fov)`, `camera`). El check entra con la tecla V real y sale con Shift+V.
 - `window.__photos`: el visor (`viewer`) y `state()` con la foto de la tarjeta y la ampliada. Las cámaras se disparan con clics reales sobre `.cam-spot` (con `force`: el punto se mueve unas décimas de píxel por frame). El check sube `viewer.dwell` porque a 0.5 FPS la tarjeta se iría antes de poder ampliarla.
 
 ## Convenciones
