@@ -11,7 +11,10 @@ import { createWaypointsProvider } from './telemetry/waypointsProvider.js';
 import { createLightTimeProvider } from './telemetry/lightTimeProvider.js';
 import { MissionControl } from './hud/missionControl.js';
 import { ShakeToggle } from './hud/shakeToggle.js';
-import { installDebugHooks, installMissionHooks, installShakeHooks, markFrameRendered } from './debug.js';
+import { CameraSpots } from './hud/cameraSpots.js';
+import { PhotoViewer } from './hud/photoViewer.js';
+import { PHOTO_CAMERAS } from './photos/picks.js';
+import { installDebugHooks, installMissionHooks, installShakeHooks, installPhotoHooks, markFrameRendered } from './debug.js';
 
 // El rover arranca en el claro sin rocas, mirando hacia el sol
 const ROVER_START = { x: 0, z: 10, heading: Math.PI };
@@ -30,6 +33,10 @@ telemetry.addProvider(createWaypointsProvider());
 telemetry.addProvider(createLightTimeProvider());
 installMissionHooks(new MissionControl(telemetry));
 
+// Fotos reales: cada cámara del modelo es un punto que, al hacer clic, trae una foto suya
+const photos = new PhotoViewer();
+let spots = null;
+
 // Cámara inicial: detrás y a un lado del punto de partida
 const startGround = getSurfaceHeight(ROVER_START.x, ROVER_START.z);
 camera.position.set(ROVER_START.x + 4.5, startGround + 3.2, ROVER_START.z + 8.5);
@@ -45,6 +52,8 @@ loadRover()
     driver = new RoverController(rover, wheels, { ...ROVER_START, wheelRig, rocks: world.rocks });
     tracks.configure(wheels);
     follow = new FollowCamera(camera, controls, driver);
+    spots = new CameraSpots(camera, rover, PHOTO_CAMERAS, (key) => photos.shoot(key));
+    installPhotoHooks(photos);
     installDebugHooks({ driver, tracks, follow });
   })
   .catch((err) => console.error('No se pudo cargar el modelo del rover:', err));
@@ -59,6 +68,10 @@ start(
     }
     world.update(delta, time, camera, controls.target);
   },
-  // La cámara tiembla cuando las ruedas pasan sobre piedras
-  (delta, time) => shake.update(delta, time, driver ? driver.bump : 0),
+  // La cámara tiembla cuando las ruedas pasan sobre piedras; los puntos de las
+  // cámaras se colocan después, ya con la cámara final
+  (delta, time) => {
+    shake.update(delta, time, driver ? driver.bump : 0);
+    spots?.update();
+  },
 );

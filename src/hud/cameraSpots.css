@@ -1,0 +1,126 @@
+/* Puntos sobre las cámaras del rover. Colores de hud.css. Quedan encima de la
+   tarjeta de la foto (z-index 20) para poder disparar otra cámara sin esperar a
+   que se vaya; el obturador y la vista ampliada van encima de ellos. */
+.cam-spots {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 25;
+}
+
+/* El botón mide 28 px para que sea fácil acertarle; el punto visible es más chico */
+.cam-spot {
+  position: absolute;
+  top: -14px;
+  left: -14px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  pointer-events: auto;
+  will-change: transform;
+}
+.cam-spot[hidden] {
+  display: none;
+}
+
+.cam-spot__dot {
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 30%, var(--mc-accent) 60%);
+  box-shadow: 0 0 10px 3px rgba(255, 178, 107, 0.75), 0 0 2px 1px rgba(255, 255, 255, 0.9);
+  animation: cam-spot-pulse 2.2s ease-in-out infinite;
+}
+/* Anillo que se expande, como un sonar */
+.cam-spot__dot::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 210, 160, 0.9);
+  animation: cam-spot-ring 2.2s ease-out infinite;
+}
+.cam-spot:hover .cam-spot__dot,
+.cam-spot:focus-visible .cam-spot__dot {
+  inset: 6px;
+  background: radial-gradient(circle, #fff 0 45%, var(--mc-accent) 75%);
+}
+.cam-spot:focus-visible {
+  outline: 2px solid var(--mc-accent);
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+
+/* Destello al tomar la foto */
+.cam-spot--shot .cam-spot__dot {
+  animation: cam-spot-shot 0.6s ease-out;
+}
+
+.cam-spot__tip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  display: grid;
+  gap: 3px;
+  width: max-content;
+  max-width: 240px;
+  padding: 7px 10px;
+  transform: translate(-50%, 4px);
+  background: var(--mc-bg);
+  border: 1px solid var(--mc-line);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--mc-text);
+  text-align: left;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.cam-spot__tip strong {
+  font: 600 13px/1.1 var(--mc-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mc-accent);
+}
+.cam-spot__tip small {
+  font: 11px/1.3 system-ui, 'Segoe UI', sans-serif;
+  color: var(--mc-muted);
+}
+.cam-spot:hover .cam-spot__tip,
+.cam-spot:focus-visible .cam-spot__tip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@keyframes cam-spot-pulse {
+  50% {
+    box-shadow: 0 0 16px 6px rgba(255, 178, 107, 0.9), 0 0 2px 1px rgba(255, 255, 255, 0.9);
+  }
+}
+@keyframes cam-spot-ring {
+  from {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+@keyframes cam-spot-shot {
+  30% {
+    background: #fff;
+    box-shadow: 0 0 40px 18px rgba(255, 255, 255, 0.95);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cam-spot__dot,
+  .cam-spot__dot::after {
+    animation: none;
+  }
+}

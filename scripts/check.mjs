@@ -7,6 +7,7 @@ import { chromium } from 'playwright-core';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const screenshotPath = fileURLToPath(new URL('../screenshots/check.png', import.meta.url));
+const photoPath = fileURLToPath(new URL('../screenshots/photo.png', import.meta.url));
 
 const server = await createServer({ root, logLevel: 'error', server: { port: 5199, strictPort: false } });
 await server.listen();
@@ -33,20 +34,27 @@ try {
     else if (msg.type() === 'log' || msg.type() === 'info') logs.push(text);
   });
   page.on('pageerror', (err) => errors.push(`[pageerror] ${err.message}`));
-  page.on('requestfailed', (req) => errors.push(`[requestfailed] ${req.url()} ${req.failure()?.errorText}`));
+  page.on('requestfailed', (req) => {
+    const text = `[requestfailed] ${req.url()} ${req.failure()?.errorText}`;
+    // Al pasar de foto con las flechas el navegador cancela la que aún bajaba: no es un error
+    if (req.url().includes('/mars2020-raw-images/') && req.failure()?.errorText === 'net::ERR_ABORTED') warnings.push(text);
+    else errors.push(text);
+  });
 
-  // NASA responde 403 a los navegadores que se identifican como HeadlessChrome;
-  // el check baja el JSON real desde Node y se lo entrega a la página sin cambios
-  const waypointsUrl = 'https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_waypoints.json';
-  await page.route(waypointsUrl, async (route) => {
-    const res = await fetch(waypointsUrl);
+  // NASA responde 403 a los navegadores que se identifican como HeadlessChrome
+  // (el JSON de paradas y la API de fotos crudas); el check baja la respuesta real
+  // desde Node y se la entrega a la página sin cambios. Las imágenes sí cargan.
+  const viaNode = async (route) => {
+    const res = await fetch(route.request().url());
     await route.fulfill({
       status: res.status,
       contentType: 'application/json',
       headers: { 'access-control-allow-origin': '*' },
       body: await res.text(),
     });
-  });
+  };
+  await page.route('https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_waypoints.json', viaNode);
+  await page.route('https://mars.nasa.gov/rss/api/**', viaNode);
 
   console.log(`Abriendo ${url}`);
   await page.goto(url, { waitUntil: 'load' });
@@ -317,6 +325,68 @@ try {
   await page.keyboard.up('KeyA');
   await page.keyboard.up('KeyW');
   console.log(`Captura: ${screenshotPath}`);
+
+  // Fotos reales: clic en el punto de cada cámara; cada una debe abrir una foto
+  // de la NASA. Mastcam-Z va al final para ampliarla y capturarla.
+  const photoCameras = ['NavCams', 'hazcams_front', 'WATSON', 'Mastcam_Z_cams'];
+  await page.waitForTimeout(1500); // que el rover termine de frenar
+  // A 0.5 FPS cada consulta tarda segundos: la tarjeta se queda hasta ampliarla
+  await page.evaluate(() => (window.__photos.viewer.dwell = 120000));
+  for (const key of photoCameras) {
+    // force: el punto sigue a la cámara y se mueve unas décimas de píxel por frame,
+    // así que nunca pasa la prueba de "elemento quieto"; el clic sigue siendo real
+    await page.click(`.cam-spot[data-camera="${key}"]`, { force: true });
+    try {
+      await page.waitForFunction(
+        (k) => window.__photos.state().card?.camera === k && document.querySelector('.photo-card img').naturalWidth > 0,
+        key,
+        { timeout: 30000 },
+      );
+      const shown = await page.evaluate(() => ({
+        ...window.__photos.state().card,
+        meta: [...document.querySelectorAll('.photo-card .photo-meta > *')].map((el) => el.textContent).join(' · '),
+        width: document.querySelector('.photo-card img').naturalWidth,
+      }));
+      logs.push(`[check] foto · ${shown.meta} · ${shown.id} (${shown.width} px, ${shown.index + 1}/${shown.total})`);
+    } catch {
+      const status = await page.evaluate(() => {
+        const card = document.querySelector('.photo-card');
+        return `${card.hidden ? 'oculta' : card.dataset.state}, muestra ${window.__photos.state().card?.camera ?? 'nada'}`;
+      });
+      errors.push(`[check] La cámara ${key} no abrió una foto (tarjeta: ${status})`);
+    }
+  }
+  // Ampliar: clic en la tarjeta (tras el revelado), flechas para recorrer, W no
+  // debe mover al rover y Esc vuelve al juego
+  try {
+    await page.waitForTimeout(2500);
+    // En el pie de la tarjeta: al centro puede quedar encima un punto de cámara
+    await page.click('.photo-card__foot');
+    await page.waitForFunction(() => window.__photos.state().zoom && !document.querySelector('.photo-zoom').hidden, null, {
+      timeout: 5000,
+    });
+    const first = await page.evaluate(() => window.__photos.state().zoom);
+    await page.keyboard.press('ArrowRight');
+    const second = await page.evaluate(() => window.__photos.state().zoom);
+    await page.keyboard.press('ArrowLeft');
+    const back = await page.evaluate(() => window.__photos.state().zoom);
+    await page.keyboard.down('KeyW');
+    const blocked = await page.evaluate(() => !window.__rover.keys.has('KeyW'));
+    await page.keyboard.up('KeyW');
+    if (second.id === first.id || back.id !== first.id) errors.push('[check] Las flechas no recorren las fotos de la cámara');
+    else logs.push(`[check] foto ampliada · → ${second.id} · ← vuelve a ${back.id}`);
+    if (!blocked) errors.push('[check] Con la foto ampliada, W sigue moviendo al rover');
+    await page.waitForFunction(() => document.querySelector('.photo-zoom img').naturalWidth > 0, null, { timeout: 15000 });
+    await page.waitForTimeout(1000);
+    await page.screenshot({ path: photoPath });
+    console.log(`Captura con la foto abierta: ${photoPath}`);
+    await page.keyboard.press('Escape');
+    const closed = await page.evaluate(() => !window.__photos.state().zoom && document.querySelector('.photo-zoom').hidden);
+    if (!closed) errors.push('[check] Esc no cierra la foto ampliada');
+    else logs.push('[check] foto ampliada · Esc vuelve al juego');
+  } catch (err) {
+    errors.push(`[check] La foto no se pudo ampliar: ${err.message}`);
+  }
 } catch (err) {
   errors.push(`[check] ${err.message}`);
 } finally {
