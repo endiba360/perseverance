@@ -14,7 +14,7 @@ Objetivos de la simulación:
 
 ## Estado actual
 
-Paisaje marciano cinematográfico (dunas, rocas, cielo caramelo con polvo, sol de tarde, Fobos y Deimos) con el modelo oficial de Perseverance de la NASA a tamaño real: se conduce con WASD/flechas, deja huellas y la cámara lo sigue. Un panel de control de misión (tecla T) muestra 4 datos reales de Percy con el patrón de telemetría de Open MCT. Las rocas de más de 40 cm lo detienen y las más bajas las trepa; al pasar sobre ellas la cámara tiembla, y un switch del HUD (activado por defecto) permite apagar el temblor. Pendiente: vistas desde las cámaras del rover.
+Paisaje marciano cinematográfico (dunas, rocas, cielo caramelo con polvo, sol de tarde, Fobos y Deimos) con el modelo oficial de Perseverance de la NASA a tamaño real: se conduce con WASD/flechas, deja huellas y la cámara lo sigue. Cuatro cámaras del modelo brillan y, con un clic, muestran fotos crudas reales de Percy. Un panel de control de misión (tecla T) muestra 4 datos reales de Percy con el patrón de telemetría de Open MCT. Las rocas de más de 40 cm lo detienen y las más bajas las trepa; al pasar sobre ellas la cámara tiembla, y un switch del HUD (activado por defecto) permite apagar el temblor. Pendiente: vistas 3D desde las cámaras del rover.
 
 ## Stack
 
@@ -27,7 +27,7 @@ Paisaje marciano cinematográfico (dunas, rocas, cielo caramelo con polvo, sol d
 - `npm install`: instala dependencias y, en `postinstall`, copia el decodificador Draco a `public/draco/` (no está en git).
 - `npm run dev`: servidor de desarrollo en http://localhost:5173 (con HMR).
 - `npm run build` / `npm run preview`: build de producción en `dist/` y su vista previa.
-- `npm run check`: levanta Vite en otro puerto, abre la página en Chrome headless (WebGL por SwiftShader), guarda `screenshots/check.png` y lista errores/avisos de consola; termina con código 1 si hay errores. Córrelo tras cada cambio visual grande y revisa la captura.
+- `npm run check`: levanta Vite en otro puerto, abre la página en Chrome headless (WebGL por SwiftShader), guarda `screenshots/check.png` y `screenshots/photo.png` (foto de Mastcam-Z ampliada) y lista errores/avisos de consola; termina con código 1 si hay errores. Córrelo tras cada cambio visual grande y revisa la captura.
 
 ## Estructura
 
@@ -62,6 +62,12 @@ src/
   hud/hud.css          colores y tipografías compartidos por el HUD (variables --mc-* en :root)
   hud/missionControl.js  panel de control de misión (tecla T): valor, gráfica de la misión y frase por dato;
                        solo habla con la TelemetryAPI, nunca con las fuentes (estilos en missionControl.css)
+  hud/cameraSpots.js   puntos brillantes proyectados cada frame sobre las piezas-cámara del modelo (botones
+                       HTML; los pares estéreo van sobre una cámara cada uno para no encimarse)
+  hud/photoViewer.js   obturador + flash, tarjeta que se revela arriba a la izquierda, vista ampliada
+                       (flechas, Esc; en fase de captura se queda con las teclas del juego)
+  photos/picks.js      ids de las fotos escogidas a mano por cámara (clave = nombre de la pieza en el GLB)
+  photos/rawImages.js  pide cada foto por id a la API de imágenes crudas; daysAgo()
   hud/shakeToggle.js   switch "Temblor de cámara" (arriba a la derecha, activado por defecto; estilos en
                        shakeToggle.css): cambia CameraShake.enabled y suelta el foco tras cada clic
   post/composer.js     bloom + OutputPass + viñeta/grano
@@ -99,6 +105,14 @@ scripts/copy-draco.mjs copia el decodificador Draco de three a public/draco/
 - La NASA responde 403 a los navegadores con user agent `HeadlessChrome`: `npm run check` baja el JSON desde Node y lo entrega a la página con `page.route`. No disfraces el user agent.
 - Sol 0 = aterrizaje (2021-02-18 20:55 UTC); un sol dura 88 775.244 s.
 
+## Fotos reales
+
+- API: `https://mars.nasa.gov/rss/api/?feed=raw_images&category=mars2020&feedtype=json&...` (CORS abierto). Listado: `ver=1.2&num=100&page=0&order=sol+desc&search=%7CNAVCAM_LEFT%7C`; una foto: `&id=<imageid>` (responde `{ image: [ … ] }`). `date_taken_utc` viene sin zona: es UTC.
+- Instrumentos: `MCZ_LEFT`/`MCZ_RIGHT`, `NAVCAM_LEFT`, `FRONT_HAZCAM_LEFT_A`, `SHERLOC_WATSON`. En Mastcam-Z solo sirven los filtros `*_RGB` sin `ND` (los `ND` miran al sol). Se descartan las de menos de 1000 × 700 (miniaturas y franjas) y las grises (`NLG_`, cielo, calibración).
+- Las fotos se escogen viéndolas, no por reglas: para renovarlas, baja las candidatas, míralas y cambia los ids en `photos/picks.js`.
+- La API responde 403 a `HeadlessChrome` (igual que el JSON de paradas): `npm run check` la pasa por Node con `page.route`. Las imágenes sí cargan.
+- `img.decode()` se quedó sin resolver en pruebas con Chrome: el visor espera el evento `load`.
+
 ## Notas de Three.js r186
 
 - `PCFSoftShadowMap` fue eliminado: usa `PCFShadowMap` con `light.shadow.radius` para sombras suaves.
@@ -115,12 +129,13 @@ Viven en `src/debug.js`; todo gancho nuevo para pruebas va ahí, no en `main.js`
 - `window.__rocks`: el RockField (`rocks`, `near`, `heightAt`).
 - `window.__shake`: el temblor de cámara (`enabled`, `trauma`, `update`). El switch se prueba con clics reales sobre `.hud-switch`.
 - `window.__mission`: lecturas del control de misión (`readings()`) y si está visible.
+- `window.__photos`: el visor (`viewer`) y `state()` con la foto de la tarjeta y la ampliada. Las cámaras se disparan con clics reales sobre `.cam-spot` (con `force`: el punto se mueve unas décimas de píxel por frame). El check sube `viewer.dwell` porque a 0.5 FPS la tarjeta se iría antes de poder ampliarla.
 
 ## Convenciones
 
 - Idioma: la comunicación con el usuario es en español. Comentarios y documentación en español; nombres de variables, funciones y archivos en inglés.
 - Unidades del mundo 3D en metros, para usar las dimensiones reales del rover (aprox. 3 m de largo, 2.7 m de ancho, 2.2 m de alto, ~1025 kg) y la gravedad de Marte (3.721 m/s²).
-- Organiza el código por responsabilidad: `world/` (paisaje), `rover/` (rover), `telemetry/` (datos y sus proveedores), `hud/` (interfaz sobre la escena), `post/` (efectos), `engine.js` (render). Un dato de telemetría nuevo se agrega como proveedor, sin tocar el panel. `main.js` solo conecta piezas; la lógica nueva va en su propio módulo.
+- Organiza el código por responsabilidad: `world/` (paisaje), `rover/` (rover), `telemetry/` (datos y sus proveedores), `hud/` (interfaz sobre la escena), `photos/` (fotos reales), `post/` (efectos), `engine.js` (render). Un dato de telemetría nuevo se agrega como proveedor, sin tocar el panel. `main.js` solo conecta piezas; la lógica nueva va en su propio módulo.
 - El modelo de la NASA trae varias piezas fusionadas en mallas únicas. Si una parte necesita moverse por separado, sepárala en código dentro de `rover/` como un módulo propio (como `wheels.js`).
 - Archivos binarios grandes: el GLB (~5 MB) va directo en git. Si se agregan más modelos o texturas pesadas, usa Git LFS.
 - Commits: no agregues líneas de autoría ni coautoría (`Co-Authored-By`, "Generated with Claude Code", etc.) a los mensajes de commit ni a las descripciones de PR. Mensajes en español, con prefijo tipo `feat:`, `fix:`, `docs:`, `chore:`.
