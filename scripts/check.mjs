@@ -301,7 +301,8 @@ try {
   logs.push(`[check] temblor tras otro clic: ${describeShake(shakeBack)}`);
   const works = (s) => s.checked && s.enabled && s.trauma > 0 && s.turnedDeg > 0;
   if (!works(shakeOn)) errors.push('[check] El temblor de cámara no está activado o no funciona por defecto');
-  if (shakeOff.checked || shakeOff.enabled || shakeOff.trauma !== 0 || shakeOff.turnedDeg !== 0) {
+  // angleTo entre cuaterniones iguales puede dar ~1e-8° por redondeo
+  if (shakeOff.checked || shakeOff.enabled || shakeOff.trauma !== 0 || shakeOff.turnedDeg > 1e-4) {
     errors.push('[check] El switch no apaga el temblor de cámara');
   }
   if (!works(shakeBack)) errors.push('[check] El switch no vuelve a encender el temblor de cámara');
