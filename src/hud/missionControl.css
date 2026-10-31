@@ -1,17 +1,4 @@
-/* Panel de control de misión: vidrio oscuro tostado sobre la escena, con
-   tipografía de instrumento. Es un HUD de juego, así que tiene un solo tema. */
-.mission,
-.mission-hint {
-  --mc-bg: rgba(28, 14, 8, 0.62);
-  --mc-line: rgba(255, 196, 150, 0.16);
-  --mc-text: #f6e6d6;
-  --mc-muted: #bf9f86;
-  --mc-accent: #ffb26b;
-  --mc-grid: rgba(255, 210, 175, 0.12);
-  --mc-error: #ff8a6b;
-  --mc-display: Bahnschrift, 'DIN Alternate', 'Arial Narrow', system-ui, sans-serif;
-  --mc-mono: 'Cascadia Mono', Consolas, ui-monospace, monospace;
-}
+/* Panel de control de misión. Los colores y tipografías vienen de hud.css. */
 
 /* Barra horizontal al pie de la pantalla: una columna por dato */
 .mission {

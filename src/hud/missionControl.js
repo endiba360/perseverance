@@ -2,6 +2,7 @@
 // la gráfica de toda la misión y una frase de qué significa. Solo habla con la
 // TelemetryAPI (como las vistas de Open MCT). Es una barra horizontal al pie de
 // la pantalla y la tecla T la muestra u oculta.
+import './hud.css';
 import './missionControl.css';
 
 // Frase simple para cada dato, a partir del historial y del último valor

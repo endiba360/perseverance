@@ -18,6 +18,7 @@ const MAX_ANGLE = {
 export class CameraShake {
   constructor(camera) {
     this.camera = camera;
+    this.enabled = true; // el usuario lo apaga con el switch del HUD (hud/shakeToggle.js)
     this.trauma = 0;
     this.noise = createNoise2D(7);
   }
@@ -25,6 +26,10 @@ export class CameraShake {
   // Llamar después de controls.update(), justo antes de dibujar.
   // bump: metros que subieron o bajaron las ruedas sobre piedras en este frame (controller.bump)
   update(delta, time, bump) {
+    if (!this.enabled) {
+      this.trauma = 0;
+      return;
+    }
     this.trauma = THREE.MathUtils.clamp(this.trauma - DECAY * delta + bump / FULL_BUMP, 0, 1);
     if (this.trauma === 0) return;
     const shake = this.trauma * this.trauma;

@@ -53,6 +53,8 @@ src/
   telemetry/waypointsProvider.js  distancia, altura e inclinación del JSON de paradas de la NASA (M20_waypoints)
   telemetry/lightTimeProvider.js  tiempo de luz Tierra-Marte en vivo
   telemetry/orbits.js  posiciones de la Tierra y Marte (elementos keplerianos aproximados de JPL)
+  hud/hud.css          colores y tipografías compartidos por el HUD (variables --mc-* en :root)
+  hud/shakeToggle.js   switch (arriba a la derecha, activado por defecto) que prende o apaga el temblor
   hud/missionControl.js  panel de control de misión (tecla T): valor, gráfica de la misión y frase por dato;
                        solo habla con la TelemetryAPI, nunca con las fuentes (estilos en missionControl.css)
   world/sky.js         shader del cielo (degradado, polvo, halo azulado, disco solar HDR)
@@ -91,7 +93,7 @@ scripts/copy-draco.mjs copia el decodificador Draco de three a public/draco/
 
 - `PCFSoftShadowMap` fue eliminado: usa `PCFShadowMap` con `light.shadow.radius` para sombras suaves.
 - `THREE.Clock` está obsoleto: usa `THREE.Timer` (`timer.update(timestamp)` en el bucle).
-- Ganchos de `src/debug.js`: `window.__sceneReady` se activa cuando el rover ya está en escena (el check lo espera); como en headless el WebGL por software va a <1 FPS, el check usa `window.__drive(segundos, teclas)` para conducir a paso fijo; `window.__rover` expone el controlador; `window.__rocks` el RockField; `window.__mission` expone las lecturas del panel y si está visible. Todo gancho nuevo para pruebas va en ese archivo, no en `main.js`.
+- Ganchos de `src/debug.js`: `window.__sceneReady` se activa cuando el rover ya está en escena (el check lo espera); como en headless el WebGL por software va a <1 FPS, el check usa `window.__drive(segundos, teclas)` para conducir a paso fijo; `window.__rover` expone el controlador; `window.__rocks` el RockField; `window.__shake` el temblor de cámara (`enabled`, `trauma`) y `window.__shakeToggle` su switch; `window.__mission` expone las lecturas del panel y si está visible. Todo gancho nuevo para pruebas va en ese archivo, no en `main.js`.
 - `alphaMap` lee el canal verde, no el alfa: para transparencias dibujadas en canvas usa `map` con RGBA.
 
 ## Convenciones

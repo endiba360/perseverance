@@ -23,7 +23,7 @@ Simulación 3D del rover Perseverance de la NASA en el cráter Jezero, construid
 | 🛰️ **Modelo oficial** | El GLB de [NASA-3D-Resources](https://github.com/nasa/NASA-3D-Resources) a tamaño real: 2.70 m de ancho, 3.11 m de largo y 2.23 m de alto, con el mástil desplegado y el brazo guardado, como cuando conduce. |
 | 🎮 **Conducción** | Avanza, retrocede y gira sobre su eje. Se apoya en sus 6 ruedas y se inclina siguiendo las dunas. |
 | 🛞 **Ruedas** | Las 6 ruedas ruedan según la velocidad y las 4 de las esquinas se orientan como en el rover real: en curva al avanzar y en diamante al girar en el sitio. |
-| 🪨 **Rocas** | Las piedras de más de 40 cm (lo que evita el rover real) lo detienen, y si llega en diagonal se desliza por el borde. Las más bajas las trepa: la rueda que pisa una sube, el rover se ladea y la cámara tiembla con la sacudida. |
+| 🪨 **Rocas** | Las piedras de más de 40 cm (lo que evita el rover real) lo detienen, y si llega en diagonal se desliza por el borde. Las más bajas las trepa: la rueda que pisa una sube, el rover se ladea y la cámara tiembla con la sacudida (se apaga con el switch de arriba a la derecha). |
 | 👣 **Huellas** | Dos bandas sobre la arena con el relieve en chevrón de los grousers, marcado por la luz rasante del sol. |
 | 🎥 **Cámara de seguimiento** | Se coloca detrás del rover al conducir y puedes girarla alrededor con el mouse. |
 | 📷 **Cámaras a bordo** | Al cargar, la consola lista las 8 cámaras del modelo: Mastcam-Z, SuperCam, Navcams, Hazcams, WATSON y las de descenso. |
@@ -80,6 +80,7 @@ Abre http://localhost:5173, haz clic en la escena y conduce:
 | `A` / `←` | Girar a la izquierda |
 | `D` / `→` | Girar a la derecha |
 | `T` | Mostrar u ocultar el control de misión |
+| Switch "Temblor de cámara" | Activar o desactivar el temblor al pasar sobre piedras |
 | Arrastrar con el mouse | Girar la cámara alrededor del rover |
 | Rueda del mouse | Acercar / alejar |
 
@@ -91,7 +92,7 @@ Abre http://localhost:5173, haz clic en la escena y conduce:
 npm run check
 ```
 
-Abre la escena en tu Chrome instalado en modo invisible (con [Playwright](https://playwright.dev/) y sin descargar navegadores), simula un recorrido del rover, prueba que una roca grande lo detenga y que trepe una pequeña, comprueba que el control de misión cargue sus 4 datos y que la tecla `T` lo oculte, guarda una captura en `screenshots/check.png` y lista los mensajes y errores de consola. Termina con código 1 si encuentra algún error.
+Abre la escena en tu Chrome instalado en modo invisible (con [Playwright](https://playwright.dev/) y sin descargar navegadores), simula un recorrido del rover, prueba que una roca grande lo detenga y que trepe una pequeña, que el switch del temblor de cámara lo apague y lo encienda, comprueba que el control de misión cargue sus 4 datos y que la tecla `T` lo oculte, guarda una captura en `screenshots/check.png` y lista los mensajes y errores de consola. Termina con código 1 si encuentra algún error.
 
 ## 🗂️ Estructura
 
@@ -114,7 +115,9 @@ src/
 │   ├── lightTimeProvider.js  tiempo de luz Tierra-Marte en vivo
 │   └── orbits.js      posiciones de la Tierra y Marte
 ├── hud/
-│   └── missionControl.js  panel de control de misión (tecla T)
+│   ├── hud.css            colores compartidos del HUD
+│   ├── missionControl.js  panel de control de misión (tecla T)
+│   └── shakeToggle.js     switch del temblor de cámara
 ├── world/
 │   ├── world.js       arma el paisaje completo
 │   ├── terrain.js     dunas y relieve (altura exacta para apoyar objetos)

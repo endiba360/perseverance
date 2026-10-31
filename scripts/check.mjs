@@ -269,6 +269,42 @@ try {
   });
   rockReport.lines.forEach((line) => logs.push(`[check] ${line}`));
   errors.push(...rockReport.errors);
+
+  // Switch del temblor: activado por defecto; con un clic real se apaga (el
+  // trauma queda en 0 y la cámara no se mueve) y con otro vuelve a funcionar
+  const shakeState = () =>
+    page.evaluate(() => {
+      const shake = window.__shake;
+      const cam = shake.camera;
+      const before = cam.quaternion.clone();
+      shake.update(1 / 30, 1.37, 0.15); // una sacudida de 15 cm, como al pisar una piedra
+      const turned = cam.quaternion.angleTo(before);
+      const trauma = shake.trauma;
+      cam.quaternion.copy(before);
+      shake.trauma = 0;
+      return {
+        checked: document.querySelector('.hud-switch input').checked,
+        enabled: shake.enabled,
+        trauma,
+        turnedDeg: (turned * 180) / Math.PI,
+      };
+    });
+  const describeShake = (s) =>
+    `switch ${s.checked ? 'activado' : 'desactivado'}, enabled=${s.enabled}, trauma ${s.trauma.toFixed(2)}, cámara girada ${s.turnedDeg.toFixed(3)}°`;
+  const shakeOn = await shakeState();
+  await page.click('.hud-switch');
+  const shakeOff = await shakeState();
+  await page.click('.hud-switch');
+  const shakeBack = await shakeState();
+  logs.push(`[check] temblor por defecto: ${describeShake(shakeOn)}`);
+  logs.push(`[check] temblor tras un clic: ${describeShake(shakeOff)}`);
+  logs.push(`[check] temblor tras otro clic: ${describeShake(shakeBack)}`);
+  const works = (s) => s.checked && s.enabled && s.trauma > 0 && s.turnedDeg > 0;
+  if (!works(shakeOn)) errors.push('[check] El temblor de cámara no está activado o no funciona por defecto');
+  if (shakeOff.checked || shakeOff.enabled || shakeOff.trauma !== 0 || shakeOff.turnedDeg !== 0) {
+    errors.push('[check] El switch no apaga el temblor de cámara');
+  }
+  if (!works(shakeBack)) errors.push('[check] El switch no vuelve a encender el temblor de cámara');
   logs.push(`[check] rover tras recorrido simulado: ${await roverState()}`);
   // Mantiene W+A durante la captura para que se vean las ruedas orientadas
   await page.keyboard.down('KeyW');

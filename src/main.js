@@ -10,7 +10,8 @@ import { TelemetryAPI } from './telemetry/telemetry.js';
 import { createWaypointsProvider } from './telemetry/waypointsProvider.js';
 import { createLightTimeProvider } from './telemetry/lightTimeProvider.js';
 import { MissionControl } from './hud/missionControl.js';
-import { installDebugHooks, installMissionHooks, markFrameRendered } from './debug.js';
+import { ShakeToggle } from './hud/shakeToggle.js';
+import { installDebugHooks, installMissionHooks, installShakeHooks, markFrameRendered } from './debug.js';
 
 // El rover arranca en el claro sin rocas, mirando hacia el sol
 const ROVER_START = { x: 0, z: 10, heading: Math.PI };
@@ -20,6 +21,7 @@ const world = createWorld(scene);
 const tracks = new Tracks();
 scene.add(tracks.group);
 const shake = new CameraShake(camera);
+installShakeHooks(shake, new ShakeToggle(shake));
 
 // Control de misión: datos reales de Percy, cada uno servido por su proveedor
 const telemetry = new TelemetryAPI();
